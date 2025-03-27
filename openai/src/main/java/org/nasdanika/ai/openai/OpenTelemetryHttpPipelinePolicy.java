@@ -4,6 +4,7 @@ import org.nasdanika.common.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpRequest;
@@ -17,6 +18,8 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Mono;
 
@@ -53,6 +56,11 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 	        	.spanBuilder(request.getHttpMethod().toString() + " " + path)
 	        	.setSpanKind(SpanKind.CLIENT)
 	        	.startSpan();
+        
+        // Trace propagation
+        Context telemetryContext = Context.current().with(requestSpan);
+        W3CTraceContextPropagator propagator = W3CTraceContextPropagator.getInstance();
+        propagator.inject(telemetryContext, request, (rq, name, value) -> rq.setHeader(HttpHeaderName.fromString(name), value));
         
 		Mono<HttpResponse> result = next.process();
 		return 

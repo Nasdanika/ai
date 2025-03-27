@@ -37,5 +37,4 @@ public class OpenTelemetryHttpPipelinePolicyCapabilityFactory extends ServiceCap
 		return new OpenTelemetryHttpPipelinePolicy(openTelemetry, endpoint);
 	}
 
-
 }
