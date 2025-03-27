@@ -44,7 +44,7 @@ Key components:
     * Chatting with a site - serve both a static site and semantic search command, OpenAI and Ollama. Docker on a GCP VM.
     * Chatting with a model
     
-
+Later maybe agents based on the Invocation flow. 
 
 
 
