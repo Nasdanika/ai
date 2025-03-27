@@ -1,4 +1,4 @@
-package org.nasdanika.ai.chat;
+package org.nasdanika.ai;
 
 public interface ChatMessage {
 

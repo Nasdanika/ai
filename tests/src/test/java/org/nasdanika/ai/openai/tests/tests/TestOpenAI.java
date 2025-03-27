@@ -1,5 +1,6 @@
 package org.nasdanika.ai.openai.tests.tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
@@ -195,5 +196,35 @@ public class TestOpenAI {
 		}
 	}
 	
+	@Test
+	public void testOpenAIEmbeddings() {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		try {
+			Requirement<Void, org.nasdanika.ai.Embeddings> requirement = ServiceCapabilityFactory.createRequirement(org.nasdanika.ai.Embeddings.class);			
+			org.nasdanika.ai.Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			assertNotNull(embeddings);
+			assertEquals("text-embedding-ada-002", embeddings.getModel());
+			assertEquals("OpenAI", embeddings.getProvider());
+			assertEquals(1536, embeddings.getDimensions());
+			
+			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+			assertNotNull(openTelemetry);
+	
+	        Tracer tracer = openTelemetry.getTracer("test.openai");        
+	        Span span = tracer
+	        	.spanBuilder("Embeddings")
+	        	.startSpan();
+	        
+	        try (Scope scope = span.makeCurrent()) {
+	        	List<Float> vector = embeddings.generate("Hello world!");
+	        	System.out.println(vector.size());
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}
 	
 }

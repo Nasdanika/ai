@@ -7,6 +7,7 @@ module org.nasdanika.ai.openai {
 	requires transitive org.nasdanika.ai;
 	requires transitive com.azure.ai.openai;
 	requires transitive org.nasdanika.telemetry;
+	requires transitive jtokkit;
 	requires io.opentelemetry.context;
 	
 	exports org.nasdanika.ai.openai;
