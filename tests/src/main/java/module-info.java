@@ -1,5 +1,6 @@
 import org.nasdanika.ai.tests.EnvironmentVariableKeyCredentialCapabilityFactory;
 import org.nasdanika.ai.tests.OpenAIAdaEmbeddingsCapabilityFactory;
+import org.nasdanika.ai.tests.OpenAIGpt35TurboChatCapabilityFactory;
 import org.nasdanika.capability.CapabilityFactory;
 
 module org.nasdanika.ai.openai.tests {
@@ -11,6 +12,7 @@ module org.nasdanika.ai.openai.tests {
 	
 	provides CapabilityFactory with 
 		EnvironmentVariableKeyCredentialCapabilityFactory,
-		OpenAIAdaEmbeddingsCapabilityFactory;
+		OpenAIAdaEmbeddingsCapabilityFactory,
+		OpenAIGpt35TurboChatCapabilityFactory;
 	
 }

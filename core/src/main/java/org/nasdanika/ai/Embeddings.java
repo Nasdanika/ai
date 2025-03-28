@@ -7,20 +7,7 @@ import java.util.Map;
  * Embeddings "business" interface focusing on ease of use and leaving
  * token usage reporting to implementations.
  */
-public interface Embeddings {
-	
-	/**
-	 * Provider name - OpenAI, Ollama, ...
-	 * @return
-	 */
-	String getProvider();
-	
-	/**
-	 * Model name
-	 * @return
-	 */
-	String getModel();
-	
+public interface Embeddings extends Model {
 	/**
 	 * 
 	 * @param input

@@ -23,6 +23,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 
@@ -53,19 +54,22 @@ public class OpenAIEmbeddings implements Embeddings {
 	}
 
     Tracer tracer;
-	private DoubleHistogram tokenHistogram;        
+	private DoubleHistogram tokenHistogram;
+	private String version;        
 
 	public OpenAIEmbeddings(
 			OpenAIClient openAIClient, 
-			String model, 
 			String provider,
+			String model,
+			String version,
 			int dimensions,
 			EncodingType encodingType,
 			int maxInputTokens,
 			OpenTelemetry openTelemetry) {
 		this.openAIClient = openAIClient;
-		this.model = model;
 		this.provider = provider;
+		this.model = model;
+		this.version = version;
 		this.dimensions = dimensions;
 		
 		if (encodingType != null) {
@@ -76,8 +80,12 @@ public class OpenAIEmbeddings implements Embeddings {
 				 
 		tracer = openTelemetry.getTracer(getInstrumentationScopeName(), getInstrumentationScopeVersion());
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
+		String histogramName = provider + "." + model;
+		if (!Util.isBlank(version)) {
+			histogramName += "." + version;
+		}
 		tokenHistogram = meter
-			.histogramBuilder(provider + "." + model)
+			.histogramBuilder(histogramName)
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();
@@ -89,8 +97,13 @@ public class OpenAIEmbeddings implements Embeddings {
 	}
 
 	@Override
-	public String getModel() {
+	public String getName() {
 		return model;
+	}
+	
+	@Override
+	public String getVersion() {
+		return version;
 	}
 
 	@Override
@@ -118,9 +131,15 @@ public class OpenAIEmbeddings implements Embeddings {
 	@Override
 	public Map<String, List<Float>> generate(List<String> input) {
 		EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
-        Span span = tracer
-	        	.spanBuilder("Embeddings " + provider + " " + model)
+        String spanName = "Embeddings " + provider + " " + model;
+        if (!Util.isBlank(version)) {
+        	spanName += " " + version;
+        }
+		Span span = tracer
+	        	.spanBuilder(spanName)
 	        	.startSpan();
+
+		span.setStatus(StatusCode.ERROR); // We set OK at before return		
 	        
 	    try (Scope scope = span.makeCurrent()) {		
 			com.azure.ai.openai.models.Embeddings embeddings = openAIClient.getEmbeddings(model, embeddingOptions);
@@ -132,10 +151,16 @@ public class OpenAIEmbeddings implements Embeddings {
 			EmbeddingsUsage usage = embeddings.getUsage();
 			tokenHistogram.record(usage.getPromptTokens());
 			span.setAttribute("tokens", usage.getPromptTokens());
+			span.setStatus(StatusCode.OK);
 			return ret;
 	    } finally {
 	    	span.end();
 	    }
+	}
+
+	@Override
+	public int getMaxInputTokens() {
+		return maxInputTokens;
 	}
 
 }
