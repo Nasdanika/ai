@@ -35,8 +35,8 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 	public OpenTelemetryHttpPipelinePolicy(OpenTelemetry openTelemetry, String endpoint) {
 		String instrumentationScopeName = Util.isBlank(endpoint) ? "openai-http" : endpoint;
 		tracer = openTelemetry.getTracer(instrumentationScopeName);   
-		Meter meter = openTelemetry.getMeter(instrumentationScopeName);
 		this.endpoint = endpoint;
+		Meter meter = openTelemetry.getMeter(instrumentationScopeName);
 		durationHistogram = meter
 			.histogramBuilder("duration_histogram")
 			.setDescription("OpenAI request duration histogram")

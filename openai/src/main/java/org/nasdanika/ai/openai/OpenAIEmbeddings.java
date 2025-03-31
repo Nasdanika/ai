@@ -8,7 +8,10 @@ import java.util.Map;
 
 import org.nasdanika.ai.Embeddings;
 import org.nasdanika.common.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.models.EmbeddingItem;
 import com.azure.ai.openai.models.EmbeddingsOptions;
@@ -26,13 +29,18 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
+import reactor.core.publisher.Mono;
 
 /**
  * Base class for OpenAI embeddings. 
  */
 public class OpenAIEmbeddings implements Embeddings {
+
+    private static Logger logger = LoggerFactory.getLogger(OpenAIEmbeddings.class);
 	
-	private OpenAIClient openAIClient;
+	protected OpenAIClient openAIClient;
+	protected OpenAIAsyncClient openAIAsyncClient;
+	
 	private String provider;
 	private String model;
 	private int dimensions;
@@ -55,10 +63,12 @@ public class OpenAIEmbeddings implements Embeddings {
 
     Tracer tracer;
 	private DoubleHistogram tokenHistogram;
-	private String version;        
+	private String version;
+	private DoubleHistogram durationHistogram;
 
 	public OpenAIEmbeddings(
 			OpenAIClient openAIClient, 
+			OpenAIAsyncClient openAIAsyncClient, 
 			String provider,
 			String model,
 			String version,
@@ -67,6 +77,7 @@ public class OpenAIEmbeddings implements Embeddings {
 			int maxInputTokens,
 			OpenTelemetry openTelemetry) {
 		this.openAIClient = openAIClient;
+		this.openAIAsyncClient = openAIAsyncClient;
 		this.provider = provider;
 		this.model = model;
 		this.version = version;
@@ -80,15 +91,22 @@ public class OpenAIEmbeddings implements Embeddings {
 				 
 		tracer = openTelemetry.getTracer(getInstrumentationScopeName(), getInstrumentationScopeVersion());
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
-		String histogramName = provider + "." + model;
+		String tokenHistogramName = provider + "." + model;
 		if (!Util.isBlank(version)) {
-			histogramName += "." + version;
+			tokenHistogramName += "." + version;
 		}
 		tokenHistogram = meter
-			.histogramBuilder(histogramName)
+			.histogramBuilder(tokenHistogramName)
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();
+		
+		durationHistogram = meter
+			.histogramBuilder(tokenHistogramName + ".duration")
+			.setDescription("Duration histogram")
+			.setUnit("seconds")
+			.build();		
+		
 	}
 
 	@Override
@@ -161,6 +179,56 @@ public class OpenAIEmbeddings implements Embeddings {
 	@Override
 	public int getMaxInputTokens() {
 		return maxInputTokens;
+	}
+
+	@Override
+	public Mono<List<Float>> generateAsync(String input) {
+		return generateAsync(Collections.singletonList(input)).map(result -> result.get(input));
+	}
+
+	@Override
+	public Mono<Map<String, List<Float>>> generateAsync(List<String> input) {
+		long start = System.currentTimeMillis();
+		EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
+        String spanName = "Embeddings " + provider + " " + model;
+        if (!Util.isBlank(version)) {
+        	spanName += " " + version;
+        }
+		Span span = tracer
+	        	.spanBuilder(spanName)
+	        	.startSpan();
+				
+		Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient.getEmbeddings(model, embeddingOptions);
+		return 
+			result
+				.map(embeddings -> {
+			        try (Scope scope = span.makeCurrent()) {
+			        	double duration = System.currentTimeMillis() - start;
+			        	durationHistogram.record(duration / 1000);
+			        	
+						Map<String, List<Float>> ret = new LinkedHashMap<>();
+						for (EmbeddingItem ei: embeddings.getData()) {
+							String prompt = input.get(ei.getPromptIndex());
+							ret.put(prompt, ei.getEmbedding());
+						}
+						EmbeddingsUsage usage = embeddings.getUsage();
+						tokenHistogram.record(usage.getPromptTokens());
+						span.setAttribute("tokens", usage.getPromptTokens());
+						return ret;
+			        } finally {
+			        	span.setStatus(StatusCode.OK);
+			        	span.end();
+			        }
+				})
+				.onErrorMap(error -> {
+			        try (Scope scope = span.makeCurrent()) {
+				        logger.error("Embedding generation failed: " + error , error);
+						return error;
+			        } finally {
+			        	span.setStatus(StatusCode.ERROR);
+			        	span.end();
+			        }
+				});
 	}
 
 }

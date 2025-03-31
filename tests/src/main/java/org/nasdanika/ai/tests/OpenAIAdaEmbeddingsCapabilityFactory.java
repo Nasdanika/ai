@@ -47,6 +47,7 @@ public class OpenAIAdaEmbeddingsCapabilityFactory extends ServiceCapabilityFacto
 	protected Embeddings createEmbeddings(OpenAIClientBuilder openAIClientBuilder, OpenTelemetry openTelemetry) {
 		return new OpenAIEmbeddings(
 				openAIClientBuilder.buildClient(),
+				openAIClientBuilder.buildAsyncClient(),
 				"OpenAI",
 				"text-embedding-ada-002",
 				null,
