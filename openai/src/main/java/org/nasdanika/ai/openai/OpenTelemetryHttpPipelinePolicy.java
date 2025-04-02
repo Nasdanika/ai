@@ -47,7 +47,7 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 	@Override
 	public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
 		return Mono.deferContextual(contextView -> {
-			Context propagatedContext = contextView.get(Context.class);
+			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 		
 			long start = System.currentTimeMillis();
 			HttpRequest request = context.getHttpRequest();
@@ -59,7 +59,7 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 	        Span requestSpan = tracer
 		        	.spanBuilder(request.getHttpMethod().toString() + " " + path)
 		        	.setSpanKind(SpanKind.CLIENT)
-		        	.setParent(propagatedContext == null ? Context.current() : propagatedContext)
+		        	.setParent(parentContext)
 		        	.setAttribute("request.thread", Thread.currentThread().getName())
 		        	.startSpan();
 	                

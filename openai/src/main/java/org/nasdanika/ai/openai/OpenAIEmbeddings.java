@@ -190,7 +190,7 @@ public class OpenAIEmbeddings implements Embeddings {
 	@Override
 	public Mono<Map<String, List<Float>>> generateAsync(List<String> input) {
 		return Mono.deferContextual(contextView -> {
-			Context propagatedContext = contextView.get(Context.class);
+			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 
 			long start = System.currentTimeMillis();
 			EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
@@ -201,10 +201,13 @@ public class OpenAIEmbeddings implements Embeddings {
 			Span span = tracer
 		        	.spanBuilder(spanName)
 		        	.setAttribute("request.thread", Thread.currentThread().getName())
-		        	.setParent(propagatedContext == null ? Context.current() : propagatedContext)
+		        	.setParent(parentContext)
 		        	.startSpan();
 					
-			Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient.getEmbeddings(model, embeddingOptions);
+			Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient
+					.getEmbeddings(model, embeddingOptions)
+	        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
+			
 			return 
 				result
 					.map(embeddings -> {
