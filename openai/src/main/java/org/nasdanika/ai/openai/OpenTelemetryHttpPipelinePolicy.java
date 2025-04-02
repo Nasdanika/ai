@@ -46,45 +46,52 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 	
 	@Override
 	public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-		long start = System.currentTimeMillis();
-		HttpRequest request = context.getHttpRequest();
-		String path = request.getUrl().toString();
-		if (!Util.isBlank(path) && path.startsWith(endpoint)) {
-			path = path.substring(endpoint.length());
-		}
-        Span requestSpan = tracer
-	        	.spanBuilder(request.getHttpMethod().toString() + " " + path)
-	        	.setSpanKind(SpanKind.CLIENT)
-	        	.startSpan();
-        
-        // Trace propagation
-        Context telemetryContext = Context.current().with(requestSpan);
-        W3CTraceContextPropagator propagator = W3CTraceContextPropagator.getInstance();
-        propagator.inject(telemetryContext, request, (rq, name, value) -> rq.setHeader(HttpHeaderName.fromString(name), value));
-        
-		Mono<HttpResponse> result = next.process();
-		return 
-			result
-				.map(response -> {
-			        try (Scope scope = requestSpan.makeCurrent()) {
-			        	double duration = System.currentTimeMillis() - start;
-			        	durationHistogram.record(duration / 1000);
-						requestSpan.setAttribute("http_status", response.getStatusCode());
-						return response;
-			        } finally {
-			        	requestSpan.setStatus(StatusCode.OK);
-			        	requestSpan.end();
-			        }
-				})
-				.onErrorMap(error -> {
-			        try (Scope scope = requestSpan.makeCurrent()) {
-				        logger.error("Request failed: " + request.getHttpMethod() + " " + request.getUrl() , error);
-						return error;
-			        } finally {
-			        	requestSpan.setStatus(StatusCode.ERROR);
-			        	requestSpan.end();
-			        }
-				});
+		return Mono.deferContextual(contextView -> {
+			Context propagatedContext = contextView.get(Context.class);
+		
+			long start = System.currentTimeMillis();
+			HttpRequest request = context.getHttpRequest();
+			String path = request.getUrl().toString();
+			if (!Util.isBlank(path) && path.startsWith(endpoint)) {
+				path = path.substring(endpoint.length());
+			}
+			
+	        Span requestSpan = tracer
+		        	.spanBuilder(request.getHttpMethod().toString() + " " + path)
+		        	.setSpanKind(SpanKind.CLIENT)
+		        	.setParent(propagatedContext == null ? Context.current() : propagatedContext)
+		        	.setAttribute("request.thread", Thread.currentThread().getName())
+		        	.startSpan();
+	                
+	        // Trace propagation
+	        Context telemetryContext = Context.current().with(requestSpan);
+	        W3CTraceContextPropagator propagator = W3CTraceContextPropagator.getInstance();
+	        propagator.inject(telemetryContext, request, (rq, name, value) -> rq.setHeader(HttpHeaderName.fromString(name), value));
+	        
+			Mono<HttpResponse> result = next.process();
+			
+			return 
+				result
+					.map(response -> {
+				        try (Scope scope = requestSpan.makeCurrent()) {
+				        	double duration = System.currentTimeMillis() - start;
+				        	durationHistogram.record(duration / 1000);
+							requestSpan.setAttribute("http.status", response.getStatusCode());
+				        	requestSpan.setStatus(StatusCode.OK);
+							return response;
+				        }
+					})
+					.onErrorMap(error -> {
+				        try (Scope scope = requestSpan.makeCurrent()) {
+					        logger.error("Request failed: " + request.getHttpMethod() + " " + request.getUrl() , error);
+				        	requestSpan.setStatus(StatusCode.ERROR);
+							return error;
+				        }
+					}).doFinally(signal -> {
+						requestSpan.setAttribute("response.thread", Thread.currentThread().getName());
+			        	requestSpan.end();					
+					});
+		});
 	}
 
 }

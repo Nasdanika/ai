@@ -28,6 +28,7 @@ import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Mono;
 
@@ -188,47 +189,53 @@ public class OpenAIEmbeddings implements Embeddings {
 
 	@Override
 	public Mono<Map<String, List<Float>>> generateAsync(List<String> input) {
-		long start = System.currentTimeMillis();
-		EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
-        String spanName = "Embeddings " + provider + " " + model;
-        if (!Util.isBlank(version)) {
-        	spanName += " " + version;
-        }
-		Span span = tracer
-	        	.spanBuilder(spanName)
-	        	.startSpan();
-				
-		Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient.getEmbeddings(model, embeddingOptions);
-		return 
-			result
-				.map(embeddings -> {
-			        try (Scope scope = span.makeCurrent()) {
-			        	double duration = System.currentTimeMillis() - start;
-			        	durationHistogram.record(duration / 1000);
-			        	
-						Map<String, List<Float>> ret = new LinkedHashMap<>();
-						for (EmbeddingItem ei: embeddings.getData()) {
-							String prompt = input.get(ei.getPromptIndex());
-							ret.put(prompt, ei.getEmbedding());
-						}
-						EmbeddingsUsage usage = embeddings.getUsage();
-						tokenHistogram.record(usage.getPromptTokens());
-						span.setAttribute("tokens", usage.getPromptTokens());
-						return ret;
-			        } finally {
-			        	span.setStatus(StatusCode.OK);
-			        	span.end();
-			        }
-				})
-				.onErrorMap(error -> {
-			        try (Scope scope = span.makeCurrent()) {
-				        logger.error("Embedding generation failed: " + error , error);
-						return error;
-			        } finally {
-			        	span.setStatus(StatusCode.ERROR);
-			        	span.end();
-			        }
-				});
+		return Mono.deferContextual(contextView -> {
+			Context propagatedContext = contextView.get(Context.class);
+
+			long start = System.currentTimeMillis();
+			EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
+	        String spanName = "Embeddings " + provider + " " + model;
+	        if (!Util.isBlank(version)) {
+	        	spanName += " " + version;
+	        }
+			Span span = tracer
+		        	.spanBuilder(spanName)
+		        	.setAttribute("request.thread", Thread.currentThread().getName())
+		        	.setParent(propagatedContext == null ? Context.current() : propagatedContext)
+		        	.startSpan();
+					
+			Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient.getEmbeddings(model, embeddingOptions);
+			return 
+				result
+					.map(embeddings -> {
+				        try (Scope scope = span.makeCurrent()) {
+				        	double duration = System.currentTimeMillis() - start;
+				        	durationHistogram.record(duration / 1000);
+				        	
+							Map<String, List<Float>> ret = new LinkedHashMap<>();
+							for (EmbeddingItem ei: embeddings.getData()) {
+								String prompt = input.get(ei.getPromptIndex());
+								ret.put(prompt, ei.getEmbedding());
+							}
+							EmbeddingsUsage usage = embeddings.getUsage();
+							tokenHistogram.record(usage.getPromptTokens());
+							span.setAttribute("tokens", usage.getPromptTokens());
+				        	span.setStatus(StatusCode.OK);
+							return ret;
+				        }
+					})
+					.onErrorMap(error -> {
+				        try (Scope scope = span.makeCurrent()) {
+					        logger.error("Embedding generation failed: " + error , error);
+				        	span.setStatus(StatusCode.ERROR);
+							return error;
+				        }
+					}).doFinally(signal -> {
+						span.setAttribute("result.thread", Thread.currentThread().getName());
+						span.end();
+					});			
+		});
+		
 	}
 
 }

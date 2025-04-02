@@ -34,6 +34,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Mono;
 
@@ -199,7 +200,7 @@ public class TestOpenAI {
 	}
 	
 	@Test
-	public void testOpenAIEmbeddings() {
+	public void testOpenAIEmbeddings() throws Exception {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
@@ -219,6 +220,7 @@ public class TestOpenAI {
 	        	.startSpan();
 	        
 	        try (Scope scope = span.makeCurrent()) {
+	        	Thread.sleep(200);
 	        	List<Float> vector = embeddings.generate("Hello world!");
 	        	System.out.println(vector.size());
 	        } finally {
@@ -259,6 +261,54 @@ public class TestOpenAI {
 			capabilityLoader.close(progressMonitor);
 		}
 	}
+	
+	@Test
+	public void testOpenAIAsyncEmbeddingsPropagation() throws InterruptedException {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		try {
+			Requirement<Void, org.nasdanika.ai.Embeddings> requirement = ServiceCapabilityFactory.createRequirement(org.nasdanika.ai.Embeddings.class);			
+			org.nasdanika.ai.Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			assertNotNull(embeddings);
+			assertEquals("text-embedding-ada-002", embeddings.getName());
+			assertEquals("OpenAI", embeddings.getProvider());
+			assertEquals(1536, embeddings.getDimensions());
+			
+			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+			assertNotNull(openTelemetry);
+						
+	        Tracer rootTracer = openTelemetry.getTracer("test.openai.caller");
+	        Span rootSpan = rootTracer
+		        	.spanBuilder("Root span")
+		        	.setNoParent()
+		        	.startSpan();
+	        Thread.sleep(200);
+	        
+	        Context rootSpanContext = Context.current().with(rootSpan);
+	        try {	        		
+		        Tracer tracer = openTelemetry.getTracer("test.openai");        
+		        Span span = tracer
+		        	.spanBuilder("Embeddings")
+		        	.setParent(rootSpanContext)
+		        	.startSpan();
+		        
+		        try (Scope scope = span.makeCurrent()) {
+		        	List<Float> vector = embeddings
+		        		.generateAsync("Hello world!")
+		        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+		        		.block();
+		        	System.out.println(vector.size());
+		        } finally {
+		        	span.end();
+		        }
+		        Thread.sleep(200);
+	        } finally {
+	        	rootSpan.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}	
 	
 	@Test
 	public void testNasdanikaOpenAIChat() {
