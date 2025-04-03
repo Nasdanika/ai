@@ -18,9 +18,9 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.context.propagation.TextMapPropagator;
 import reactor.core.publisher.Mono;
 
 public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
@@ -31,10 +31,13 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 	private DoubleHistogram durationHistogram;
 
 	private String endpoint;
+
+	private TextMapPropagator propagator;
 	
 	public OpenTelemetryHttpPipelinePolicy(OpenTelemetry openTelemetry, String endpoint) {
 		String instrumentationScopeName = Util.isBlank(endpoint) ? "openai-http" : endpoint;
 		tracer = openTelemetry.getTracer(instrumentationScopeName);   
+        propagator = openTelemetry.getPropagators().getTextMapPropagator();
 		this.endpoint = endpoint;
 		Meter meter = openTelemetry.getMeter(instrumentationScopeName);
 		durationHistogram = meter
@@ -65,7 +68,6 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 	                
 	        // Trace propagation
 	        Context telemetryContext = Context.current().with(requestSpan);
-	        W3CTraceContextPropagator propagator = W3CTraceContextPropagator.getInstance();
 	        propagator.inject(telemetryContext, request, (rq, name, value) -> rq.setHeader(HttpHeaderName.fromString(name), value));
 	        
 			Mono<HttpResponse> result = next.process();
