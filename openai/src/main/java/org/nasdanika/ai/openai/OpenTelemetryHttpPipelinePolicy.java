@@ -63,7 +63,6 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 		        	.spanBuilder(request.getHttpMethod().toString() + " " + path)
 		        	.setSpanKind(SpanKind.CLIENT)
 		        	.setParent(parentContext)
-		        	.setAttribute("request.thread", Thread.currentThread().getName())
 		        	.startSpan();
 	                
 	        // Trace propagation
@@ -95,5 +94,5 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 					});
 		});
 	}
-
+	
 }

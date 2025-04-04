@@ -57,5 +57,4 @@ public class OpenAIAdaEmbeddingsCapabilityFactory extends ServiceCapabilityFacto
 				openTelemetry);
 	}
 	
-
 }
