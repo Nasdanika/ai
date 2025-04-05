@@ -13,9 +13,6 @@ import com.knuddels.jtokkit.api.EncodingType;
 
 import io.opentelemetry.api.OpenTelemetry;
 
-/**
- * Creates and configures {@link OpenAIClientBuilder}
- */
 public class OpenAIAdaEmbeddingsCapabilityFactory extends ServiceCapabilityFactory<Void, Embeddings> {
 
 	@Override

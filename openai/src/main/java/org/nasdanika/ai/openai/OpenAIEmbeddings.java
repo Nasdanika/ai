@@ -24,6 +24,7 @@ import com.knuddels.jtokkit.api.IntArrayList;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -63,7 +64,7 @@ public class OpenAIEmbeddings implements Embeddings {
 	}
 
     Tracer tracer;
-	private DoubleHistogram tokenHistogram;
+	private LongCounter tokenCounter;
 	private String version;
 	private DoubleHistogram durationHistogram;
 
@@ -96,8 +97,8 @@ public class OpenAIEmbeddings implements Embeddings {
 		if (!Util.isBlank(version)) {
 			tokenHistogramName += "." + version;
 		}
-		tokenHistogram = meter
-			.histogramBuilder(tokenHistogramName)
+		tokenCounter = meter
+			.counterBuilder(tokenHistogramName)
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();
@@ -168,7 +169,7 @@ public class OpenAIEmbeddings implements Embeddings {
 				ret.put(prompt, ei.getEmbedding());
 			}
 			EmbeddingsUsage usage = embeddings.getUsage();
-			tokenHistogram.record(usage.getPromptTokens());
+			tokenCounter.add(usage.getPromptTokens());
 			span.setAttribute("tokens", usage.getPromptTokens());
 			span.setStatus(StatusCode.OK);
 			return ret;
@@ -221,7 +222,7 @@ public class OpenAIEmbeddings implements Embeddings {
 								ret.put(prompt, ei.getEmbedding());
 							}
 							EmbeddingsUsage usage = embeddings.getUsage();
-							tokenHistogram.record(usage.getPromptTokens());
+							tokenCounter.add(usage.getPromptTokens());
 							span.setAttribute("tokens", usage.getPromptTokens());
 				        	span.setStatus(StatusCode.OK);
 							return ret;

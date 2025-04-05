@@ -20,7 +20,7 @@ import com.azure.ai.openai.models.ChatRole;
 import com.azure.ai.openai.models.CompletionsUsage;
 
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -51,9 +51,9 @@ public class OpenAIChat implements Chat {
 	}
 
     Tracer tracer;
-	private DoubleHistogram totalTokenHistogram;
-	private DoubleHistogram promptTokenHistogram;
-	private DoubleHistogram completionTokenHistogram;
+	private LongCounter totalTokenCounter;
+	private LongCounter promptTokenCounter;
+	private LongCounter completionTokenCounter;
 	private int maxInputTokens;
 	private int maxOutputTokens;
 	private String version;        
@@ -76,21 +76,21 @@ public class OpenAIChat implements Chat {
 		tracer = openTelemetry.getTracer(getInstrumentationScopeName(), getInstrumentationScopeVersion());
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
 
-		totalTokenHistogram = meter
-			.histogramBuilder(provider + "." + model + ".total")
-			.setDescription("Token usage")
+		totalTokenCounter = meter
+			.counterBuilder(provider + "." + model + ".total")
+			.setDescription("Total token usage")
 			.setUnit("token")
 			.build();
 
-		promptTokenHistogram = meter
-				.histogramBuilder(provider + "." + model + ".prompt")
-				.setDescription("Token usage")
+		promptTokenCounter = meter
+				.counterBuilder(provider + "." + model + ".prompt")
+				.setDescription("Prompt token usage")
 				.setUnit("token")
 				.build();
 
-		completionTokenHistogram = meter
-				.histogramBuilder(provider + "." + model + ".completion")
-				.setDescription("Token usage")
+		completionTokenCounter = meter
+				.counterBuilder(provider + "." + model + ".completion")
+				.setDescription("Completion token usage")
 				.setUnit("token")
 				.build();
 	}
@@ -199,13 +199,13 @@ public class OpenAIChat implements Chat {
 	        ret.sort((a, b) -> ((IndexedResponseMessage) a).getIndex() - ((IndexedResponseMessage) b).getIndex());
 			CompletionsUsage usage = chatCompletions.getUsage();
 			
-			promptTokenHistogram.record(usage.getPromptTokens());
+			promptTokenCounter.add(usage.getPromptTokens());
 			span.setAttribute("prompt-tokens", usage.getPromptTokens());
 			
-			completionTokenHistogram.record(usage.getCompletionTokens());
+			completionTokenCounter.add(usage.getCompletionTokens());
 			span.setAttribute("completion-tokens", usage.getCompletionTokens());
 			
-			totalTokenHistogram.record(usage.getTotalTokens());
+			totalTokenCounter.add(usage.getTotalTokens());
 			span.setAttribute("total-tokens", usage.getTotalTokens());
 			span.setStatus(StatusCode.OK);
 			return ret;

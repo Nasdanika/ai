@@ -232,7 +232,7 @@ public class TestOpenAI {
 	}
 	
 	@Test
-	public void testOpenAIAsyncEmbeddings() {
+	public void testOpenAIAsyncEmbeddings() throws InterruptedException {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
@@ -251,12 +251,13 @@ public class TestOpenAI {
 	        	.spanBuilder("Embeddings")
 	        	.startSpan();
 	        
-	        try (Scope scope = span.makeCurrent()) {
-	        	List<Float> vector = embeddings.generateAsync("Hello world!").block();
-	        	System.out.println(vector.size());
-	        } finally {
-	        	span.end();
-	        }
+        	embeddings
+        		.generateAsync("Hello world!")
+        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+        		.doFinally(signal -> span.end())
+        		.subscribe(vector -> System.out.println(vector.size()));
+        	
+        	Thread.sleep(5000);
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}

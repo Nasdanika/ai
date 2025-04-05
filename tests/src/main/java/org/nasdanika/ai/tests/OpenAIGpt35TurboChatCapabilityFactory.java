@@ -12,9 +12,6 @@ import com.azure.ai.openai.OpenAIClientBuilder;
 
 import io.opentelemetry.api.OpenTelemetry;
 
-/**
- * Creates and configures {@link OpenAIClientBuilder}
- */
 public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFactory<Void, Chat> {
 
 	@Override
@@ -40,10 +37,10 @@ public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFact
 		
 		CompletionStage<OpenAIClientBuilder> openAIClientBuilderCS = loader.loadOne(openAIClientBuilderRequirement, progressMonitor);
 		
-		return wrapCompletionStage(openAIClientBuilderCS.thenCombine(openTelemetryCS, this::createEmbeddings));
+		return wrapCompletionStage(openAIClientBuilderCS.thenCombine(openTelemetryCS, this::createChat));
 	}
 		
-	protected Chat createEmbeddings(OpenAIClientBuilder openAIClientBuilder, OpenTelemetry openTelemetry) {
+	protected Chat createChat(OpenAIClientBuilder openAIClientBuilder, OpenTelemetry openTelemetry) {
 		return new OpenAIChat(
 			openAIClientBuilder.buildClient(),
 			"OpenAI",
