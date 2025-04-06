@@ -198,6 +198,7 @@
 	<modules>
 		<module>core</module>
 		<module>openai</module>
+		<module>mcp</module>
 	</modules>	
 
 	<distributionManagement>
