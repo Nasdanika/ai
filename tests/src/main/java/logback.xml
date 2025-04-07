@@ -4,7 +4,7 @@
 	    <file>ai-tests.log</file>
 	    <append>true</append>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg %kvp{DOUBLE}%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg %kvp{DOUBLE}%n</pattern>
         </encoder>
 	</appender>    
     <appender name="OpenTelemetry"

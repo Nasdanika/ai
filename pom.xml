@@ -199,6 +199,7 @@
 		<module>core</module>
 		<module>openai</module>
 		<module>mcp</module>
+		<module>mcp-http</module>
 	</modules>	
 
 	<distributionManagement>
