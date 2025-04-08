@@ -3,6 +3,8 @@ package org.nasdanika.ai;
 import java.util.Arrays;
 import java.util.List;
 
+import reactor.core.publisher.Mono;
+
 public interface Chat extends Model {
 	
 	interface Message {
@@ -53,7 +55,15 @@ public interface Chat extends Model {
 		
 	}
 	
-	List<ResponseMessage> chat(List<Message> messages);
+	Mono<List<ResponseMessage>> chatAsync(List<Message> messages);
+	
+	default Mono<List<ResponseMessage>> chatAsync(Message... messages) {
+		return chatAsync(Arrays.asList(messages));
+	}		
+	
+	default List<ResponseMessage> chat(List<Message> messages) {
+		return chatAsync(messages).block();
+	}
 		
 	default List<ResponseMessage> chat(Message... messages) {
 		return chat(Arrays.asList(messages));

@@ -26,7 +26,6 @@ public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFact
 			Loader loader, 
 			ProgressMonitor progressMonitor) {
 		
-		
 		Requirement<Object, OpenTelemetry> openTelemetryRequirement = ServiceCapabilityFactory.createRequirement(OpenTelemetry.class);
 		CompletionStage<OpenTelemetry> openTelemetryCS = loader.loadOne(openTelemetryRequirement, progressMonitor);
 		
@@ -43,6 +42,7 @@ public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFact
 	protected Chat createChat(OpenAIClientBuilder openAIClientBuilder, OpenTelemetry openTelemetry) {
 		return new OpenAIChat(
 			openAIClientBuilder.buildClient(),
+			openAIClientBuilder.buildAsyncClient(),
 			"OpenAI",
 			"gpt-3.5-turbo",
 			null,

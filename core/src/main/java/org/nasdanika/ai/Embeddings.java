@@ -1,7 +1,9 @@
 package org.nasdanika.ai;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import reactor.core.publisher.Mono;
 
@@ -28,7 +30,7 @@ public interface Embeddings extends Model {
 	 * @param input
 	 * @return
 	 */
-	default List<Float> generate(String input) {
+	default List<List<Float>> generate(String input) {
 		return generateAsync(input).block();
 	}
 	
@@ -38,14 +40,14 @@ public interface Embeddings extends Model {
 	 * @param input
 	 * @return
 	 */
-	Mono<List<Float>> generateAsync(String input);
+	Mono<List<List<Float>>> generateAsync(String input);
 	
 	/**
 	 * Batch generation
 	 * @param input a list of input strings
 	 * @return 
 	 */
-	default Map<String, List<Float>> generate(List<String> input) {
+	default Map<String, List<List<Float>>> generate(List<String> input) {
 		return generateAsync(input).block();
 	}
 	
@@ -54,6 +56,26 @@ public interface Embeddings extends Model {
 	 * @param input a list of input strings
 	 * @return 
 	 */
-	Mono<Map<String, List<Float>>> generateAsync(List<String> input);
+	default Mono<Map<String, List<List<Float>>>> generateAsync(List<String> input) {
+		List<Mono<Entry<String,List<List<Float>>>>> monos = input
+			.stream()
+			.map(ie -> {
+				Mono<List<List<Float>>> emb = generateAsync(ie);
+				return emb.map(vector -> Map.entry(ie, vector));
+			})
+			.toList();
+		
+		return Mono.zip(monos, this::combine);
+	}
+	
+	private Map<String, List<List<Float>>> combine(Object[] elements) {
+		Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
+		for (Object el: elements) {
+			@SuppressWarnings("unchecked")
+			Entry<String,List<List<Float>>> e = (Entry<String,List<List<Float>>>) el;
+			ret.put(e.getKey(), e.getValue());
+		}		
+		return ret;
+	}
 
 }

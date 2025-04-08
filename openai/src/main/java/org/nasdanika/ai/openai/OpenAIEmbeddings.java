@@ -27,6 +27,7 @@ import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
@@ -144,12 +145,12 @@ public class OpenAIEmbeddings implements Embeddings {
 	}
 
 	@Override
-	public List<Float> generate(String input) {
+	public List<List<Float>> generate(String input) {
 		return generate(Collections.singletonList(input)).get(input);
 	}
 
 	@Override
-	public Map<String, List<Float>> generate(List<String> input) {
+	public Map<String, List<List<Float>>> generate(List<String> input) {
 		EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
         String spanName = "Embeddings " + provider + " " + model;
         if (!Util.isBlank(version)) {
@@ -157,16 +158,17 @@ public class OpenAIEmbeddings implements Embeddings {
         }
 		Span span = tracer
 	        	.spanBuilder(spanName)
+	        	.setSpanKind(SpanKind.CLIENT)
 	        	.startSpan();
 
 		span.setStatus(StatusCode.ERROR); // We set OK at before return		
 	        
 	    try (Scope scope = span.makeCurrent()) {		
 			com.azure.ai.openai.models.Embeddings embeddings = openAIClient.getEmbeddings(model, embeddingOptions);
-			Map<String, List<Float>> ret = new LinkedHashMap<>();
+			Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
 			for (EmbeddingItem ei: embeddings.getData()) {
 				String prompt = input.get(ei.getPromptIndex());
-				ret.put(prompt, ei.getEmbedding());
+				ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
 			}
 			EmbeddingsUsage usage = embeddings.getUsage();
 			tokenCounter.add(usage.getPromptTokens());
@@ -184,12 +186,12 @@ public class OpenAIEmbeddings implements Embeddings {
 	}
 
 	@Override
-	public Mono<List<Float>> generateAsync(String input) {
+	public Mono<List<List<Float>>> generateAsync(String input) {
 		return generateAsync(Collections.singletonList(input)).map(result -> result.get(input));
 	}
 
 	@Override
-	public Mono<Map<String, List<Float>>> generateAsync(List<String> input) {
+	public Mono<Map<String, List<List<Float>>>> generateAsync(List<String> input) {
 		return Mono.deferContextual(contextView -> {
 			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 
@@ -202,6 +204,7 @@ public class OpenAIEmbeddings implements Embeddings {
 			Span span = tracer
 		        	.spanBuilder(spanName)
 		        	.setAttribute("request.thread", Thread.currentThread().getName())
+		        	.setSpanKind(SpanKind.CLIENT)
 		        	.setParent(parentContext)
 		        	.startSpan();
 					
@@ -216,10 +219,10 @@ public class OpenAIEmbeddings implements Embeddings {
 				        	double duration = System.currentTimeMillis() - start;
 				        	durationHistogram.record(duration / 1000);
 				        	
-							Map<String, List<Float>> ret = new LinkedHashMap<>();
+							Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
 							for (EmbeddingItem ei: embeddings.getData()) {
 								String prompt = input.get(ei.getPromptIndex());
-								ret.put(prompt, ei.getEmbedding());
+								ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
 							}
 							EmbeddingsUsage usage = embeddings.getUsage();
 							tokenCounter.add(usage.getPromptTokens());
