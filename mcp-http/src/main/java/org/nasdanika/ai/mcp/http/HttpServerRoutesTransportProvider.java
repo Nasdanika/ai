@@ -39,7 +39,7 @@ import reactor.netty.http.server.HttpServerRoutes;
  */
 public class HttpServerRoutesTransportProvider implements McpServerTransportProvider {
 	
-	private static final Logger logger = LoggerFactory.getLogger(HttpServerRoutesTransportProviderBak.class);	
+	private static final Logger logger = LoggerFactory.getLogger(HttpServerRoutesTransportProvider.class);	
 
 	public static final String DEFAULT_SSE_ENDPOINT = "/sse";
 
@@ -133,8 +133,8 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 			return this;
 		}
 
-		public HttpServerRoutesTransportProviderBak build(HttpServerRoutes httpServerRoutes, OpenTelemetry openTelemetry) {
-			return new HttpServerRoutesTransportProviderBak(
+		public HttpServerRoutesTransportProvider build(HttpServerRoutes httpServerRoutes, OpenTelemetry openTelemetry) {
+			return new HttpServerRoutesTransportProvider(
 					objectMapper, 
 					baseUrl, 
 					messageEndpoint, 
