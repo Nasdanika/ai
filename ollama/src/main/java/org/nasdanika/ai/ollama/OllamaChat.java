@@ -11,6 +11,8 @@ import org.nasdanika.common.NasdanikaException;
 import org.nasdanika.common.Util;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
@@ -187,7 +189,13 @@ public class OllamaChat implements Chat {
 					.setParent(parentContext)
 					.startSpan();
 				
-			try (Scope scope = span.makeCurrent()) {			
+			try (Scope scope = span.makeCurrent()) {									
+				for (Message message: messages) {
+					span.addEvent(
+							"input." + message.getRole(), 
+							Attributes.of(AttributeKey.stringKey("content"), message.getContent()));
+				}
+				
 				HttpClient client = HttpClient.create()
 						.headers(headerBuilder -> {
 							propagator.inject(Context.current(), headerBuilder, (c, k, v) -> c.set(k,v));	
@@ -200,7 +208,19 @@ public class OllamaChat implements Chat {
 					.responseContent()
 					.aggregate()
 					.asString()
-					.map(result -> unmarshal(result, span))
+					.map(result -> {
+						List<ResponseMessage> response = unmarshal(result, span);
+						for (ResponseMessage message: response) {
+							Attributes messageAttributes = Attributes.builder()
+								.put("content", message.getContent())
+								.put("kind", "response")
+								.put("finishReason", message.getFinishReason())
+								.put("refusal", message.getRefusal())
+								.build();					
+							span.addEvent("response." + message.getRole(), messageAttributes);
+						}						
+						return response;
+					})
 					.onErrorMap(error -> {
 						span.recordException(error);
 						span.setStatus(StatusCode.ERROR);
