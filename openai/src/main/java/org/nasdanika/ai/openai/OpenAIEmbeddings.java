@@ -23,7 +23,6 @@ import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
 
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
@@ -67,7 +66,6 @@ public class OpenAIEmbeddings implements Embeddings {
     Tracer tracer;
 	private LongCounter tokenCounter;
 	private String version;
-	private DoubleHistogram durationHistogram;
 
 	public OpenAIEmbeddings(
 			OpenAIClient openAIClient, 
@@ -94,22 +92,15 @@ public class OpenAIEmbeddings implements Embeddings {
 				 
 		tracer = openTelemetry.getTracer(getInstrumentationScopeName(), getInstrumentationScopeVersion());
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
-		String tokenHistogramName = provider + "." + model;
+		String tokenCounterName = provider + "_" + model;
 		if (!Util.isBlank(version)) {
-			tokenHistogramName += "." + version;
+			tokenCounterName += "_" + version;
 		}
 		tokenCounter = meter
-			.counterBuilder(tokenHistogramName)
+			.counterBuilder(tokenCounterName)
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();
-		
-		durationHistogram = meter
-			.histogramBuilder(tokenHistogramName + ".duration")
-			.setDescription("Duration histogram")
-			.setUnit("seconds")
-			.build();		
-		
 	}
 
 	@Override
@@ -195,7 +186,6 @@ public class OpenAIEmbeddings implements Embeddings {
 		return Mono.deferContextual(contextView -> {
 			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 
-			long start = System.currentTimeMillis();
 			EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
 	        String spanName = "Embeddings " + provider + " " + model;
 	        if (!Util.isBlank(version)) {
@@ -216,9 +206,6 @@ public class OpenAIEmbeddings implements Embeddings {
 				result
 					.map(embeddings -> {
 				        try (Scope scope = span.makeCurrent()) {
-				        	double duration = System.currentTimeMillis() - start;
-				        	durationHistogram.record(duration / 1000);
-				        	
 							Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
 							for (EmbeddingItem ei: embeddings.getData()) {
 								String prompt = input.get(ei.getPromptIndex());

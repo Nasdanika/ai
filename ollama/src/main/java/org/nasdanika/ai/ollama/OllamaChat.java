@@ -80,13 +80,13 @@ public class OllamaChat implements Chat {
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
 
 		promptTokenCounter = meter
-				.counterBuilder(provider + "." + model + ".prompt")
+				.counterBuilder(provider + "_" + model + "_prompt")
 				.setDescription("Prompt token usage")
 				.setUnit("token")
 				.build();
 
 		completionTokenCounter = meter
-				.counterBuilder(provider + "." + model + ".completion")
+				.counterBuilder(provider + "_" + model + "_completion")
 				.setDescription("Completion token usage")
 				.setUnit("token")
 				.build();
@@ -192,8 +192,8 @@ public class OllamaChat implements Chat {
 			try (Scope scope = span.makeCurrent()) {									
 				for (Message message: messages) {
 					span.addEvent(
-							"input." + message.getRole(), 
-							Attributes.of(AttributeKey.stringKey("content"), message.getContent()));
+						"input." + message.getRole(), 
+						Attributes.of(AttributeKey.stringKey("content"), message.getContent()));
 				}
 				
 				HttpClient client = HttpClient.create()
@@ -213,7 +213,6 @@ public class OllamaChat implements Chat {
 						for (ResponseMessage message: response) {
 							Attributes messageAttributes = Attributes.builder()
 								.put("content", message.getContent())
-								.put("kind", "response")
 								.put("finishReason", message.getFinishReason())
 								.put("refusal", message.getRefusal())
 								.build();					

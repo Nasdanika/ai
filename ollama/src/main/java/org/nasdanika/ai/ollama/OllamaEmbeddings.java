@@ -92,16 +92,15 @@ public class OllamaEmbeddings implements Embeddings {
 				 
 		tracer = openTelemetry.getTracer(getInstrumentationScopeName(), getInstrumentationScopeVersion());
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
-		String tokenHistogramName = provider + "." + model;
+		String tokenCounterName = provider + "_" + model;
 		if (!Util.isBlank(version)) {
-			tokenHistogramName += "." + version;
+			tokenCounterName += "_" + version;
 		}
 		tokenCounter = meter
-			.counterBuilder(tokenHistogramName)
+			.counterBuilder(tokenCounterName)
 			.setDescription("Token usage")
 			.setUnit("token")
-			.build();
-		
+			.build();		
 	}
 
 	@Override

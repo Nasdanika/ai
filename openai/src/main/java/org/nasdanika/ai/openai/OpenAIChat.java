@@ -21,6 +21,8 @@ import com.azure.ai.openai.models.ChatRole;
 import com.azure.ai.openai.models.CompletionsUsage;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
@@ -84,19 +86,19 @@ public class OpenAIChat implements Chat {
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
 
 		totalTokenCounter = meter
-			.counterBuilder(provider + "." + model + ".total")
+			.counterBuilder(provider + "_" + model + "_total")
 			.setDescription("Total token usage")
 			.setUnit("token")
 			.build();
 
 		promptTokenCounter = meter
-				.counterBuilder(provider + "." + model + ".prompt")
+				.counterBuilder(provider + "_" + model + "_prompt")
 				.setDescription("Prompt token usage")
 				.setUnit("token")
 				.build();
 
 		completionTokenCounter = meter
-				.counterBuilder(provider + "." + model + ".completion")
+				.counterBuilder(provider + "_" + model + "_completion")
 				.setDescription("Completion token usage")
 				.setUnit("token")
 				.build();
@@ -135,8 +137,22 @@ public class OpenAIChat implements Chat {
 	        	.startSpan();
 		
 	    try (Scope scope = span.makeCurrent()) {
+			for (Message message: messages) {
+				span.addEvent(
+					"input." + message.getRole(), 
+					Attributes.of(AttributeKey.stringKey("content"), message.getContent()));
+			}
 	        ChatCompletions chatCompletions = openAIClient.getChatCompletions(model, createChatCompletionOptions(messages));
-			return mapCompletions(chatCompletions, span);
+			List<ResponseMessage> response = mapCompletions(chatCompletions, span);
+			for (ResponseMessage message: response) {
+				Attributes messageAttributes = Attributes.builder()
+					.put("content", message.getContent())
+					.put("finishReason", message.getFinishReason())
+					.put("refusal", message.getRefusal())
+					.build();					
+				span.addEvent("response." + message.getRole(), messageAttributes);
+			}									
+			return response;
 	    } catch (RuntimeException e) {
 			span.setStatus(StatusCode.ERROR);
 			span.recordException(e);
@@ -183,9 +199,25 @@ public class OpenAIChat implements Chat {
 		        	.startSpan();
 	
 		    try (Scope scope = span.makeCurrent()) {
+				for (Message message: messages) {
+					span.addEvent(
+						"input." + message.getRole(), 
+						Attributes.of(AttributeKey.stringKey("content"), message.getContent()));
+				}
 		        Mono<ChatCompletions> chatCompletionsMono = openAIAsyncClient.getChatCompletions(model, createChatCompletionOptions(messages));
 		        return chatCompletionsMono
-					.map(result -> mapCompletions(result, span))
+					.map(result -> {
+						List<ResponseMessage> response = mapCompletions(result, span);
+						for (ResponseMessage message: response) {
+							Attributes messageAttributes = Attributes.builder()
+								.put("content", message.getContent())
+								.put("finishReason", message.getFinishReason())
+								.put("refusal", message.getRefusal())
+								.build();					
+							span.addEvent("response." + message.getRole(), messageAttributes);
+						}												
+						return response;
+					})
 					.onErrorMap(error -> {
 						span.recordException(error);
 						span.setStatus(StatusCode.ERROR);
