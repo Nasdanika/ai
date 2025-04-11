@@ -47,7 +47,8 @@ public class McpServerCommand extends TelemetryCommand {
 
 	@Override
 	protected Integer execute() throws Exception {
-		StdioServerTransportProvider transportProvider = new StdioServerTransportProvider();
+		StdioServerTransportProvider transportProvider = new StdioServerTransportProvider();		
+		
 		McpSyncServer syncServer = McpServer.sync(transportProvider) 
 			.serverInfo("my-server", "1.0.0") // TODO - module version
 			.capabilities(ServerCapabilities.builder()
@@ -117,7 +118,9 @@ public class McpServerCommand extends TelemetryCommand {
 			.logger("custom-logger")
 			.data("Server initialized")
 			.build()
-		);				
+		);	
+		
+		syncServer.closeGracefully();
 		return 0;
 	}
 

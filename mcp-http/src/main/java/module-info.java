@@ -13,6 +13,8 @@ module org.nasdanika.ai.mcp.http {
 	requires transitive com.fasterxml.jackson.databind;
 	requires reactor.netty.http;
 	requires io.netty.buffer;
+	requires io.opentelemetry.context;
+	requires org.nasdanika.ai.mcp;
 	
 	opens org.nasdanika.ai.mcp.http;
 	

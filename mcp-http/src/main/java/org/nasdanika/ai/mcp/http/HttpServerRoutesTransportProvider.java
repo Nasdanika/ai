@@ -6,8 +6,11 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import org.nasdanika.http.TelemetryFilter;
+import org.nasdanika.telemetry.TelemetryUtil;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +28,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapPropagator;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -63,13 +70,28 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 
 	private volatile boolean isClosing = false;
 
+	private Tracer tracer;
+//	private TextMapPropagator propagator;
+	private TelemetryFilter telemetryFilter;
+
 	public HttpServerRoutesTransportProvider(
 			ObjectMapper objectMapper, 
 			String messageEndpoint, 
 			HttpServerRoutes httpServerRoutes,
-			OpenTelemetry openTelemetry) {
+			Tracer tracer,
+			boolean resolveRemoteHostName,
+			TextMapPropagator propagator, 
+			BiConsumer<String, Long> durationConsumer) {
 		
-		this(objectMapper, messageEndpoint, DEFAULT_SSE_ENDPOINT, httpServerRoutes, openTelemetry);
+		this(
+			objectMapper, 
+			messageEndpoint, 
+			DEFAULT_SSE_ENDPOINT, 
+			httpServerRoutes, 
+			tracer, 
+			resolveRemoteHostName,
+			propagator,
+			durationConsumer);
 	}
 
 	public HttpServerRoutesTransportProvider(
@@ -77,9 +99,21 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 			String messageEndpoint, 
 			String sseEndpoint,
 			HttpServerRoutes httpServerRoutes,
-			OpenTelemetry openTelemetry) {
+			Tracer tracer,
+			boolean resolveRemoteHostName,
+			TextMapPropagator propagator, 
+			BiConsumer<String, Long> durationConsumer) {
 		
-		this(objectMapper, DEFAULT_BASE_URL, messageEndpoint, sseEndpoint, httpServerRoutes, openTelemetry);
+		this(
+			objectMapper, 
+			DEFAULT_BASE_URL, 
+			messageEndpoint, 
+			sseEndpoint, 
+			httpServerRoutes, 
+			tracer, 
+			resolveRemoteHostName,
+			propagator,
+			durationConsumer);
 	}
 
 	public HttpServerRoutesTransportProvider(
@@ -88,12 +122,23 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 			String messageEndpoint,
 			String sseEndpoint,
 			HttpServerRoutes httpServerRoutes,
-			OpenTelemetry openTelemetry) {
+			Tracer tracer,
+			boolean resolveRemoteHostName,
+			TextMapPropagator propagator, 
+			BiConsumer<String, Long> durationConsumer) {
 
 		this.objectMapper = objectMapper;
 		this.baseUrl = baseUrl;
 		this.messageEndpoint = messageEndpoint;
 		this.sseEndpoint = sseEndpoint;
+		
+		this.tracer = tracer;
+//		this.propagator = propagator;
+		this.telemetryFilter = new TelemetryFilter(
+				tracer, 
+				propagator, 
+				durationConsumer, 
+				resolveRemoteHostName);				
 		httpServerRoutes
 			.get(this.sseEndpoint, serveSse())
 			.post(this.messageEndpoint, this::processMessage);
@@ -102,13 +147,14 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 	public static class Builder {
 
 		private ObjectMapper objectMapper;
-
 		private String baseUrl = DEFAULT_BASE_URL;
-
 		private String messageEndpoint;
-
 		private String sseEndpoint = DEFAULT_SSE_ENDPOINT;
-
+		private Tracer tracer;
+		private boolean resolveRemoteHostName;
+		private TextMapPropagator propagator;
+		private BiConsumer<String, Long> durationConsumer;
+				
 		public Builder objectMapper(ObjectMapper objectMapper) {
 			Assert.notNull(objectMapper, "ObjectMapper must not be null");
 			this.objectMapper = objectMapper;
@@ -132,15 +178,43 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 			this.sseEndpoint = sseEndpoint;
 			return this;
 		}
+		
+		public Builder tracer(Tracer tracer) {
+			this.tracer = tracer;
+			return this;
+		}
+		
+		public Builder resolveRemoteHostName(boolean resolveRemoteHostName) {
+			this.resolveRemoteHostName = resolveRemoteHostName;
+			return this;
+		}
+		
+		public Builder propagator(TextMapPropagator propagator) {
+			this.propagator = propagator;
+			return this;
+		}
+		
+		/**
+		 * Consumer of path, duration in milliseconds. E.g. histogram
+		 * @param durationConsumer
+		 * @return
+		 */
+		public Builder setDurationConsumer(BiConsumer<String, Long> durationConsumer) {
+			this.durationConsumer = durationConsumer;
+			return this;
+		}
 
-		public HttpServerRoutesTransportProvider build(HttpServerRoutes httpServerRoutes, OpenTelemetry openTelemetry) {
+		public HttpServerRoutesTransportProvider build(HttpServerRoutes httpServerRoutes) {
 			return new HttpServerRoutesTransportProvider(
 					objectMapper, 
 					baseUrl, 
 					messageEndpoint, 
 					sseEndpoint,
 					httpServerRoutes,
-					openTelemetry);
+					tracer,
+					resolveRemoteHostName,
+					propagator,
+					durationConsumer);
 		}
 
 	}
@@ -161,19 +235,30 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 
 		@Override
 		public Mono<Void> sendMessage(McpSchema.JSONRPCMessage message) {
+			Span span = TelemetryUtil.buildSpan(tracer.spanBuilder("sessionTransport.sendMessage")).startSpan();
+			
 			return Mono.fromSupplier(() -> {
+				span.makeCurrent();
 				try {
 					return objectMapper.writeValueAsString(message);
 				}
 				catch (IOException e) {
 					throw Exceptions.propagate(e);
 				}
-			}).doOnNext(jsonText -> {
+			})			
+			.doOnNext(jsonText -> {
+				span.setAttribute("message", jsonText);
 				sink.next(new ServerSentEvent("message", jsonText));
-			}).doOnError(e -> {
+				span.setStatus(StatusCode.OK);
+			})
+			.doOnError(e -> {
 				Throwable exception = Exceptions.unwrap(e);
+				span.recordException(exception);
+				span.setStatus(StatusCode.ERROR);
 				sink.error(exception);
-			}).then();
+			})
+    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+			.doFinally(signal -> span.end()).then();
 		}
 
 		@Override
@@ -255,12 +340,22 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 		}
 		
 		McpServerSession session = sessions.get(decoder.parameters().get(SESSION_ID_PARAMETER).get(0));
-		Mono<String> requestBody = request
+		Mono<String> requestBody = Mono.deferContextual(contextView -> {
+			Context context = contextView.getOrDefault(Context.class, Context.current());
+			Span span = Span.fromContext(context);
+			
+			return request
 				.receive()
 				.aggregate()
-				.asString();
-		
-		return requestBody		
+				.asString()
+				.doOnNext(rb -> {
+					if (span != null) {
+						span.setAttribute("requeest", rb);
+					}					
+				});			
+		});
+				
+		return telemetryFilter.filter(request, requestBody)		
 				.flatMap(body -> {
 					try {
 						McpSchema.JSONRPCMessage message = McpSchema.deserializeJsonRpcMessage(objectMapper, body);

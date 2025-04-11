@@ -1,8 +1,6 @@
 package org.nasdanika.ai.openai;
 
 import org.nasdanika.common.Util;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpPipelineCallContext;
@@ -25,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 
-    private static Logger logger = LoggerFactory.getLogger(OpenTelemetryHttpPipelinePolicy.class);
+//    private static Logger logger = LoggerFactory.getLogger(OpenTelemetryHttpPipelinePolicy.class);
     
 	private Tracer tracer;	
 	private DoubleHistogram durationHistogram;
@@ -84,12 +82,11 @@ public class OpenTelemetryHttpPipelinePolicy implements HttpPipelinePolicy {
 					})
 					.onErrorMap(error -> {
 				        try (Scope scope = requestSpan.makeCurrent()) {
-					        logger.error("Request failed: " + request.getHttpMethod() + " " + request.getUrl() , error);
+				        	requestSpan.recordException(error);
 				        	requestSpan.setStatus(StatusCode.ERROR);
 							return error;
 				        }
 					}).doFinally(signal -> {
-						requestSpan.setAttribute("response.thread", Thread.currentThread().getName());
 			        	requestSpan.end();					
 					});
 		});

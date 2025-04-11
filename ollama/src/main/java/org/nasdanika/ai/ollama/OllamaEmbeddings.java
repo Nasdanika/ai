@@ -185,6 +185,7 @@ public class OllamaEmbeddings implements Embeddings {
 			Span span = tracer.spanBuilder(spanName())
 					.setSpanKind(SpanKind.CLIENT)
 					.setParent(parentContext)
+					.setAttribute("input", input)
 					.startSpan();
 				
 			try (Scope scope = span.makeCurrent()) {			

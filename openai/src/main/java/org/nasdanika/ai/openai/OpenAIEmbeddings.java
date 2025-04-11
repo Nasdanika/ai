@@ -8,8 +8,6 @@ import java.util.Map;
 
 import org.nasdanika.ai.Embeddings;
 import org.nasdanika.common.Util;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.OpenAIClient;
@@ -32,13 +30,15 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Mono;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 
 /**
  * Base class for OpenAI embeddings. 
  */
 public class OpenAIEmbeddings implements Embeddings {
 
-    private static Logger logger = LoggerFactory.getLogger(OpenAIEmbeddings.class);
+//    private static Logger logger = LoggerFactory.getLogger(OpenAIEmbeddings.class);
 	
 	protected OpenAIClient openAIClient;
 	protected OpenAIAsyncClient openAIAsyncClient;
@@ -147,12 +147,12 @@ public class OpenAIEmbeddings implements Embeddings {
         if (!Util.isBlank(version)) {
         	spanName += " " + version;
         }
+        Attributes inputAttribute = Attributes.of(AttributeKey.stringArrayKey("input"), input);
 		Span span = tracer
 	        	.spanBuilder(spanName)
 	        	.setSpanKind(SpanKind.CLIENT)
+	        	.setAllAttributes(inputAttribute)
 	        	.startSpan();
-
-		span.setStatus(StatusCode.ERROR); // We set OK at before return		
 	        
 	    try (Scope scope = span.makeCurrent()) {		
 			com.azure.ai.openai.models.Embeddings embeddings = openAIClient.getEmbeddings(model, embeddingOptions);
@@ -166,6 +166,10 @@ public class OpenAIEmbeddings implements Embeddings {
 			span.setAttribute("tokens", usage.getPromptTokens());
 			span.setStatus(StatusCode.OK);
 			return ret;
+	    } catch (RuntimeException e) {
+	    	span.setStatus(StatusCode.ERROR);
+	    	span.recordException(e);
+	    	throw e;
 	    } finally {
 	    	span.end();
 	    }
@@ -191,13 +195,14 @@ public class OpenAIEmbeddings implements Embeddings {
 	        if (!Util.isBlank(version)) {
 	        	spanName += " " + version;
 	        }
+	        Attributes inputAttribute = Attributes.of(AttributeKey.stringArrayKey("input"), input);
 			Span span = tracer
 		        	.spanBuilder(spanName)
-		        	.setAttribute("request.thread", Thread.currentThread().getName())
 		        	.setSpanKind(SpanKind.CLIENT)
 		        	.setParent(parentContext)
+		        	.setAllAttributes(inputAttribute)
 		        	.startSpan();
-					
+											
 			Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient
 					.getEmbeddings(model, embeddingOptions)
 	        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
@@ -220,12 +225,11 @@ public class OpenAIEmbeddings implements Embeddings {
 					})
 					.onErrorMap(error -> {
 				        try (Scope scope = span.makeCurrent()) {
-					        logger.error("Embedding generation failed: " + error , error);
+				        	span.recordException(error);
 				        	span.setStatus(StatusCode.ERROR);
 							return error;
 				        }
 					}).doFinally(signal -> {
-						span.setAttribute("result.thread", Thread.currentThread().getName());
 						span.end();
 					});			
 		});

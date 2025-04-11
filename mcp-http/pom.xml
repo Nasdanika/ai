@@ -7,13 +7,18 @@
 	    <version>2025.3.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>mcp</artifactId>
+	<artifactId>mcp-http</artifactId>
 	<packaging>jar</packaging>
 	<name>Nasdanika AI MCP HTTP</name>
 	<description>SSE HTTP routes transport</description>
 	<url>https://docs.nasdanika.org/ai/mcp-http/index.html</url>
 
 	<dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp</artifactId>
+            <version>${project.version}</version>
+        </dependency>      
         <dependency>
             <groupId>org.nasdanika.core</groupId>
             <artifactId>cli</artifactId>
