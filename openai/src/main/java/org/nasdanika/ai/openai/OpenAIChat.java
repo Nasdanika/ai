@@ -204,7 +204,9 @@ public class OpenAIChat implements Chat {
 						"input." + message.getRole(), 
 						Attributes.of(AttributeKey.stringKey("content"), message.getContent()));
 				}
-		        Mono<ChatCompletions> chatCompletionsMono = openAIAsyncClient.getChatCompletions(model, createChatCompletionOptions(messages));
+		        Mono<ChatCompletions> chatCompletionsMono = openAIAsyncClient
+		        		.getChatCompletions(model, createChatCompletionOptions(messages))
+						.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
 		        return chatCompletionsMono
 					.map(result -> {
 						List<ResponseMessage> response = mapCompletions(result, span);

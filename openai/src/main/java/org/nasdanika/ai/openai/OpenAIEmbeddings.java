@@ -229,7 +229,8 @@ public class OpenAIEmbeddings implements Embeddings {
 				        	span.setStatus(StatusCode.ERROR);
 							return error;
 				        }
-					}).doFinally(signal -> {
+					})
+					.doFinally(signal -> {
 						span.end();
 					});			
 		});

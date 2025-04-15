@@ -4,11 +4,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import org.json.JSONObject;
 import org.nasdanika.http.TelemetryFilter;
 import org.nasdanika.telemetry.TelemetryUtil;
 import org.reactivestreams.Publisher;
@@ -29,9 +32,12 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.ContextKey;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -45,6 +51,13 @@ import reactor.netty.http.server.HttpServerRoutes;
  * Reactor Netty implementation of {@link McpServerTransportProvider}.
  */
 public class HttpServerRoutesTransportProvider implements McpServerTransportProvider {
+	
+	private static final String ID_KEY = "id";
+
+	/**
+	 * Maps message IDs to telemetry contexts injected in POST to be extracted in sendMessage. 
+	 */
+	private Map<String, Map<String,String>> contextMap = new ConcurrentHashMap<>();
 	
 	private static final Logger logger = LoggerFactory.getLogger(HttpServerRoutesTransportProvider.class);	
 
@@ -71,7 +84,7 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 	private volatile boolean isClosing = false;
 
 	private Tracer tracer;
-//	private TextMapPropagator propagator;
+	private TextMapPropagator propagator;
 	private TelemetryFilter telemetryFilter;
 
 	public HttpServerRoutesTransportProvider(
@@ -133,7 +146,7 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 		this.sseEndpoint = sseEndpoint;
 		
 		this.tracer = tracer;
-//		this.propagator = propagator;
+		this.propagator = propagator;
 		this.telemetryFilter = new TelemetryFilter(
 				tracer, 
 				propagator, 
@@ -235,30 +248,91 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 
 		@Override
 		public Mono<Void> sendMessage(McpSchema.JSONRPCMessage message) {
-			Span span = TelemetryUtil.buildSpan(tracer.spanBuilder("sessionTransport.sendMessage")).startSpan();
+			AtomicReference<Span> spanRef = new AtomicReference<>();
+			
+			Context contextDelegate = new Context() {
+				
+				private Context getTarget() {
+					Context target = Context.current();
+					Span span = spanRef.get();
+					if (span == null) {
+						return target;
+					}
+					return target.with(span);
+				}
+				
+				@Override
+				public <V> Context with(ContextKey<V> k1, V v1) {
+					return getTarget().with(k1, v1);
+				}
+				
+				@Override
+				public <V> V get(ContextKey<V> key) {
+					return getTarget().get(key);
+				}
+			};
 			
 			return Mono.fromSupplier(() -> {
-				span.makeCurrent();
 				try {
-					return objectMapper.writeValueAsString(message);
+					SpanBuilder spanBuilder = TelemetryUtil.buildSpan(tracer.spanBuilder("sessionTransport.sendMessage"));
+					String jsonText = objectMapper.writeValueAsString(message);
+					JSONObject jObj = new JSONObject(jsonText);
+					if (jObj.has(ID_KEY)) {
+						Map<String,String> parentSpanData = contextMap.remove(jObj.getString(ID_KEY));
+						if (parentSpanData != null) {
+							TextMapGetter<Map<String, String>> mapper = new TextMapGetter<Map<String,String>>() {
+
+								@Override
+								public Iterable<String> keys(Map<String, String> carrier) {
+									return carrier.keySet();
+								}
+
+								@Override
+								public String get(Map<String, String> carrier, String key) {
+									return carrier.get(key);
+								}
+				
+							};
+							Context telemetrycontext = propagator.extract(
+									Context.current(),
+									parentSpanData,
+									mapper);
+							spanBuilder.setParent(telemetrycontext);
+						}
+					}
+					Span span = spanBuilder.startSpan();
+					spanRef.set(span);
+					return jsonText;
 				}
 				catch (IOException e) {
 					throw Exceptions.propagate(e);
 				}
 			})			
 			.doOnNext(jsonText -> {
-				span.setAttribute("message", jsonText);
 				sink.next(new ServerSentEvent("message", jsonText));
-				span.setStatus(StatusCode.OK);
+				Span span = spanRef.get();
+				if (span != null) {
+					span.setAttribute("message", jsonText);
+					span.setStatus(StatusCode.OK);
+				}
 			})
 			.doOnError(e -> {
 				Throwable exception = Exceptions.unwrap(e);
-				span.recordException(exception);
-				span.setStatus(StatusCode.ERROR);
+				Span span = spanRef.get();
+				if (span != null) {
+					span.recordException(exception);
+					span.setStatus(StatusCode.ERROR);
+				}
 				sink.error(exception);
 			})
-    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
-			.doFinally(signal -> span.end()).then();
+    		.contextWrite(reactor.util.context.Context.of(Context.class, contextDelegate))
+			.doFinally(signal -> {
+				Span span = spanRef.get();
+				if (span != null) {
+					span.end();
+				}
+			})
+			.then();
 		}
 
 		@Override
@@ -350,7 +424,15 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 				.asString()
 				.doOnNext(rb -> {
 					if (span != null) {
-						span.setAttribute("requeest", rb);
+						span.setAttribute("request", rb);
+						JSONObject jRequest = new JSONObject(rb);
+						if (jRequest.has(ID_KEY)) {
+							Map<String,String> carrier = new HashMap<>();
+							propagator.inject(context, carrier, (cr, name, value) -> cr.put(name, value));		
+							if (!carrier.isEmpty()) {
+								contextMap.put(jRequest.getString(ID_KEY), carrier);
+							}
+						}
 					}					
 				});			
 		});

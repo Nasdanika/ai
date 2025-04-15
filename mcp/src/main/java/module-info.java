@@ -7,7 +7,12 @@ module org.nasdanika.ai.mcp {
 	
 	requires transitive io.modelcontextprotocol.sdk.mcp;
 	requires transitive org.nasdanika.cli;
-	requires io.opentelemetry.context;
+	requires transitive io.opentelemetry.context;
+	requires transitive java.net.http;
+	requires com.fasterxml.jackson.core;
+	requires transitive com.fasterxml.jackson.databind;
+	requires org.slf4j;
+	requires io.opentelemetry.api;
 	
 	opens org.nasdanika.ai.mcp;
 	

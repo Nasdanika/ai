@@ -7,12 +7,19 @@ import java.util.List;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.nasdanika.ai.mcp.HttpClientTelemetrySseClientTransport;
+import org.nasdanika.ai.mcp.McpTelemetryFilter;
+import org.nasdanika.ai.mcp.TelemetryMcpClientTransportFilter;
 import org.nasdanika.ai.mcp.http.HttpServerRoutesTransportProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.modelcontextprotocol.client.McpAsyncClient;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.server.McpAsyncServer;
@@ -32,6 +39,7 @@ import io.modelcontextprotocol.spec.McpSchema.ClientCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Content;
 import io.modelcontextprotocol.spec.McpSchema.CreateMessageResult;
 import io.modelcontextprotocol.spec.McpSchema.GetPromptResult;
+import io.modelcontextprotocol.spec.McpSchema.InitializeResult;
 import io.modelcontextprotocol.spec.McpSchema.ListResourcesResult;
 import io.modelcontextprotocol.spec.McpSchema.LoggingLevel;
 import io.modelcontextprotocol.spec.McpSchema.LoggingMessageNotification;
@@ -47,11 +55,13 @@ import io.modelcontextprotocol.spec.McpSchema.TextResourceContents;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.http.server.HttpServerRoutes;
-import org.nasdanika.ai.mcp.McpTelemetryFilter;
 
 public class TestMcp {
 	
@@ -451,7 +461,7 @@ public class TestMcp {
 		HttpServerRoutesTransportProvider transportProvider =
 			HttpServerRoutesTransportProvider.builder()
 				.propagator(openTelemetry.getPropagators().getTextMapPropagator())
-				.tracer(openTelemetry.getTracer(TestMcp.class.getName() + ".routeSyncMcp"))
+				.tracer(openTelemetry.getTracer(TestMcp.class.getName() + ".routeAsyncMcp"))
 				.resolveRemoteHostName(true)
 				.messageEndpoint("/messages")
 				.objectMapper(new ObjectMapper())
@@ -692,7 +702,7 @@ public class TestMcp {
 	}	
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testClient() throws Exception {
 		ServerParameters params = ServerParameters.builder("C:\\Users\\pavel\\Apps\\nsd-mcp-server\\nsd-mcp-server.bat")
 			    .args("mcp-server")
@@ -715,8 +725,7 @@ public class TestMcp {
 		ListResourcesResult resources = client.listResources();
 		System.out.println(resources);
 		
-		client.closeGracefully();
-		
+		client.closeGracefully();		
 	}
 	
 	@Test
@@ -733,5 +742,141 @@ public class TestMcp {
             System.err.write(buffer, 0, bytesRead);
         }
     }
+	
+	@Test
+//	@Disabled
+	public void testSseClient() throws Exception {
+		McpClientTransport transport = new HttpClientSseClientTransport("http://localhost:8080");
 
+		McpSyncClient client = McpClient.sync(transport)
+			    .requestTimeout(Duration.ofSeconds(10))
+			    .capabilities(ClientCapabilities.builder()
+			        .roots(true)      // Enable roots capability
+			        .sampling()       // Enable sampling capability
+			        .build())
+			    .sampling(request -> {			    	
+			    	CreateMessageResult result = null;
+					return result;
+			    })
+			    .build();		
+		
+		client.initialize();
+		ListResourcesResult resources = client.listResources();
+		System.out.println(resources);
+		
+		client.closeGracefully();		
+	}
+	
+	@Test
+//	@Disabled
+	public void testSseTelemetryClient() throws Exception {		
+		OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();
+		McpClientTransport transport = new HttpClientTelemetrySseClientTransport(
+				"http://localhost:8080", 
+				openTelemetry.getTracer(TestMcp.class.getName() + ".transport"),
+				openTelemetry.getPropagators().getTextMapPropagator(),
+				null);
+				
+		TelemetryMcpClientTransportFilter transportFilter = new TelemetryMcpClientTransportFilter(transport, openTelemetry.getTracer(TestMcp.class.getName() + ".transportFilter")); 		
+
+		McpSyncClient client = McpClient.sync(transportFilter)
+			    .requestTimeout(Duration.ofSeconds(10))
+			    .capabilities(ClientCapabilities.builder()
+			        .roots(true)      // Enable roots capability
+			        .sampling()       // Enable sampling capability
+			        .build())
+			    .sampling(request -> {			    	
+			    	CreateMessageResult result = null;
+					return result;
+			    })
+			    .build();		
+		
+		client.initialize();
+		ListResourcesResult resources = client.listResources();
+		System.out.println(resources);
+		
+		client.closeGracefully();		
+	}
+	
+
+	private static final Logger logger = LoggerFactory.getLogger(TestMcp.class);	
+	
+	@Test
+//	@Disabled
+	public void testSseTelemetryAsyncClient() throws Exception {		
+		OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();
+		McpClientTransport transport = new HttpClientTelemetrySseClientTransport(
+				"http://localhost:8080", 
+				openTelemetry.getTracer(TestMcp.class.getName() + ".transport"),
+				openTelemetry.getPropagators().getTextMapPropagator(),
+				null);
+				
+		TelemetryMcpClientTransportFilter transportFilter = new TelemetryMcpClientTransportFilter(transport, openTelemetry.getTracer(TestMcp.class.getName() + ".transportFilter")); 		
+
+		// Create an async client with custom configuration
+		McpAsyncClient client = McpClient.async(transportFilter)
+		    .requestTimeout(Duration.ofSeconds(10))
+		    .capabilities(ClientCapabilities.builder()
+		        .roots(true)      // Enable roots capability
+		        .sampling()       // Enable sampling capability
+		        .build())
+		    .sampling(request -> Mono.empty() /* (new CreateMessageResult("assistant", "Request: " + request) */)
+		    .toolsChangeConsumer(tools -> Mono.fromRunnable(() -> {
+		        logger.info("Tools updated: {}", tools);
+		    }))
+		    .resourcesChangeConsumer(resources -> Mono.fromRunnable(() -> {
+		        logger.info("Resources updated: {}", resources);
+		    }))
+		    .promptsChangeConsumer(prompts -> Mono.fromRunnable(() -> {
+		        logger.info("Prompts updated: {}", prompts);
+		    }))
+		    .build();
+
+		// Initialize connection and use features
+		InitializeResult initResult = client.initialize().block();
+		
+		Span span = openTelemetry.getTracer(TestMcp.class.getName() + ".rootSpanTracer").spanBuilder("rootSpan").startSpan();
+		ListResourcesResult resources = client
+				.listResources()
+				.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+				.doFinally(signal -> {
+					span.end();
+				})
+				.block();
+		System.out.println(resources);
+		
+//		    .flatMap(initResult -> client.listTools())
+//		    .flatMap(tools -> {
+//		        return client.callTool(new CallToolRequest(
+//		            "calculator", 
+//		            Map.of("operation", "add", "a", 2, "b", 3)
+//		        ));
+//		    })
+//		    .flatMap(result -> {
+//		        return client.listResources()
+//		            .flatMap(resources -> 
+//		                client.readResource(new ReadResourceRequest("resource://uri"))
+//		            );
+//		    })
+//		    .flatMap(resource -> {
+//		        return client.listPrompts()
+//		            .flatMap(prompts ->
+//		                client.getPrompt(new GetPromptRequest(
+//		                    "greeting", 
+//		                    Map.of("name", "Spring")
+//		                ))
+//		            );
+//		    })
+//		    .flatMap(prompt -> {
+//		        return client.addRoot(new Root("file:///path", "description"))
+//		            .then(client.removeRoot("file:///path"));            
+//		    })
+//		    .doFinally(signalType -> {
+//		        client.closeGracefully().subscribe();
+//		    })
+//		    .subscribe();
+		
+		client.closeGracefully().block();
+	}
+	
 }

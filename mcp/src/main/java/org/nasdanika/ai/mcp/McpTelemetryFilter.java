@@ -68,24 +68,26 @@ public class McpTelemetryFilter {
 						.setParent(parentContext)
 						.startSpan();
 				
-					Mono<CallToolResult> publisher = asyncToolSpecification.call().apply(exchange, request);
-					return publisher
-						.map(result -> {
-				        	span.setStatus(StatusCode.OK);
-							return result;
-						})
-						.onErrorMap(error -> {
-				        	span.recordException(error);
-				        	span.setStatus(StatusCode.ERROR);
-							return error;
-						})
-			    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
-						.doFinally(signal -> {
-							if (durationConsumer != null) {
-								durationConsumer.accept("tool.sync." + asyncToolSpecification.tool().name(), System.currentTimeMillis() - start);
-							}
-							span.end();
-						});
+					try (Scope scope = span.makeCurrent()) {
+						Mono<CallToolResult> publisher = asyncToolSpecification.call().apply(exchange, request);
+						return publisher
+							.map(result -> {
+					        	span.setStatus(StatusCode.OK);
+								return result;
+							})
+							.onErrorMap(error -> {
+					        	span.recordException(error);
+					        	span.setStatus(StatusCode.ERROR);
+								return error;
+							})
+				    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+							.doFinally(signal -> {
+								if (durationConsumer != null) {
+									durationConsumer.accept("tool.sync." + asyncToolSpecification.tool().name(), System.currentTimeMillis() - start);
+								}
+								span.end();
+							});
+					}
 				});
 			});						
 	}
@@ -132,25 +134,27 @@ public class McpTelemetryFilter {
 						.setAttribute("mime-type", asyncResourceSpecification.resource().mimeType())
 						.setParent(parentContext)
 						.startSpan();
-					
-					Mono<ReadResourceResult> publisher = asyncResourceSpecification.readHandler().apply(exchange, request);
-					return publisher
-						.map(result -> {
-				        	span.setStatus(StatusCode.OK);
-							return result;
-						})
-						.onErrorMap(error -> {
-				        	span.recordException(error);
-				        	span.setStatus(StatusCode.ERROR);
-							return error;
-						})
-			    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
-						.doFinally(signal -> {
-							if (durationConsumer != null) {
-								durationConsumer.accept("tool.sync." + asyncResourceSpecification.resource().name(), System.currentTimeMillis() - start);
-							}
-							span.end();
-						});									
+
+					try (Scope scope = span.makeCurrent()) {				
+						Mono<ReadResourceResult> publisher = asyncResourceSpecification.readHandler().apply(exchange, request);
+						return publisher
+							.map(result -> {
+					        	span.setStatus(StatusCode.OK);
+								return result;
+							})
+							.onErrorMap(error -> {
+					        	span.recordException(error);
+					        	span.setStatus(StatusCode.ERROR);
+								return error;
+							})
+				    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+							.doFinally(signal -> {
+								if (durationConsumer != null) {
+									durationConsumer.accept("tool.sync." + asyncResourceSpecification.resource().name(), System.currentTimeMillis() - start);
+								}
+								span.end();
+							});
+					}
 				});
 			});
 	}
