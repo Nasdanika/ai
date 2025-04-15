@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.nasdanika.ai.mcp.HttpClientTelemetrySseClientTransport;
 import org.nasdanika.ai.mcp.McpTelemetryFilter;
 import org.nasdanika.ai.mcp.TelemetryMcpClientTransportFilter;
 import org.nasdanika.ai.mcp.http.HttpServerRoutesTransportProvider;
+import org.nasdanika.telemetry.TelemetryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +36,7 @@ import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
 import io.modelcontextprotocol.spec.McpClientTransport;
+import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ClientCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Content;
@@ -41,11 +44,13 @@ import io.modelcontextprotocol.spec.McpSchema.CreateMessageResult;
 import io.modelcontextprotocol.spec.McpSchema.GetPromptResult;
 import io.modelcontextprotocol.spec.McpSchema.InitializeResult;
 import io.modelcontextprotocol.spec.McpSchema.ListResourcesResult;
+import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
 import io.modelcontextprotocol.spec.McpSchema.LoggingLevel;
 import io.modelcontextprotocol.spec.McpSchema.LoggingMessageNotification;
 import io.modelcontextprotocol.spec.McpSchema.Prompt;
 import io.modelcontextprotocol.spec.McpSchema.PromptArgument;
 import io.modelcontextprotocol.spec.McpSchema.PromptMessage;
+import io.modelcontextprotocol.spec.McpSchema.ReadResourceRequest;
 import io.modelcontextprotocol.spec.McpSchema.ReadResourceResult;
 import io.modelcontextprotocol.spec.McpSchema.Resource;
 import io.modelcontextprotocol.spec.McpSchema.ResourceContents;
@@ -56,8 +61,12 @@ import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import reactor.core.Scannable;
+import reactor.core.Scannable.Attr;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -776,26 +785,47 @@ public class TestMcp {
 				openTelemetry.getTracer(TestMcp.class.getName() + ".transport"),
 				openTelemetry.getPropagators().getTextMapPropagator(),
 				null);
+		
+		Tracer tracer = openTelemetry.getTracer(TestMcp.class.getName());		
+		Span span = TelemetryUtil.buildSpan(tracer.spanBuilder("testSseTelemetryClient")).startSpan();
 				
-		TelemetryMcpClientTransportFilter transportFilter = new TelemetryMcpClientTransportFilter(transport, openTelemetry.getTracer(TestMcp.class.getName() + ".transportFilter")); 		
+		try (Scope scope = span.makeCurrent()) {
+			TelemetryMcpClientTransportFilter transportFilter = new TelemetryMcpClientTransportFilter(transport, openTelemetry.getTracer(TestMcp.class.getName() + ".transportFilter"), Context.current()); 		
+	
+			McpSyncClient client = McpClient.sync(transportFilter)
+				    .requestTimeout(Duration.ofSeconds(10))
+				    .capabilities(ClientCapabilities.builder()
+				        .roots(true)      // Enable roots capability
+				        .sampling()       // Enable sampling capability
+				        .build())
+				    .sampling(request -> {			    	
+				    	CreateMessageResult result = null;
+						return result;
+				    })
+				    .build();		
+			
+			client.initialize();
+			ListResourcesResult resources = client.listResources();
+			System.out.println(resources);
+			
+			ReadResourceResult resource = client.readResource(new ReadResourceRequest("nasdanika://drawio"));			
+			System.out.println(resource.contents());
+			
+			// List available tools
+			ListToolsResult tools = client.listTools();
+			System.out.println(tools);
 
-		McpSyncClient client = McpClient.sync(transportFilter)
-			    .requestTimeout(Duration.ofSeconds(10))
-			    .capabilities(ClientCapabilities.builder()
-			        .roots(true)      // Enable roots capability
-			        .sampling()       // Enable sampling capability
-			        .build())
-			    .sampling(request -> {			    	
-			    	CreateMessageResult result = null;
-					return result;
-			    })
-			    .build();		
-		
-		client.initialize();
-		ListResourcesResult resources = client.listResources();
-		System.out.println(resources);
-		
-		client.closeGracefully();		
+			// Call a tool
+			CallToolResult result = client.callTool(
+			    new CallToolRequest("calculator", 
+			        Map.of("operation", "add", "a", 2, "b", 3))
+			);
+			System.out.println(result);			
+			
+			client.closeGracefully();
+		} finally {
+			span.end();
+		}
 	}
 	
 
@@ -811,72 +841,96 @@ public class TestMcp {
 				openTelemetry.getPropagators().getTextMapPropagator(),
 				null);
 				
-		TelemetryMcpClientTransportFilter transportFilter = new TelemetryMcpClientTransportFilter(transport, openTelemetry.getTracer(TestMcp.class.getName() + ".transportFilter")); 		
+		Tracer tracer = openTelemetry.getTracer(TestMcp.class.getName());		
+		Span span = TelemetryUtil.buildSpan(tracer.spanBuilder("testSseTelemetryAsyncClient")).startSpan();
+				
+		try (Scope scope = span.makeCurrent()) {
+			TelemetryMcpClientTransportFilter transportFilter = new TelemetryMcpClientTransportFilter(transport, openTelemetry.getTracer(TestMcp.class.getName() + ".transportFilter")); 		
+	
+			// Create an async client with custom configuration
+			McpAsyncClient client = McpClient.async(transportFilter)
+			    .requestTimeout(Duration.ofSeconds(10))
+			    .capabilities(ClientCapabilities.builder()
+			        .roots(true)      // Enable roots capability
+			        .sampling()       // Enable sampling capability
+			        .build())
+			    .sampling(request -> Mono.empty() /* (new CreateMessageResult("assistant", "Request: " + request) */)
+			    .toolsChangeConsumer(tools -> Mono.fromRunnable(() -> {
+			        logger.info("Tools updated: {}", tools);
+			    }))
+			    .resourcesChangeConsumer(resources -> Mono.fromRunnable(() -> {
+			        logger.info("Resources updated: {}", resources);
+			    }))
+			    .promptsChangeConsumer(prompts -> Mono.fromRunnable(() -> {
+			        logger.info("Prompts updated: {}", prompts);
+			    }))
+			    .build();
+	
+			// Initialize connection and use features
+			InitializeResult initResult = client.initialize().block();
 
-		// Create an async client with custom configuration
-		McpAsyncClient client = McpClient.async(transportFilter)
-		    .requestTimeout(Duration.ofSeconds(10))
-		    .capabilities(ClientCapabilities.builder()
-		        .roots(true)      // Enable roots capability
-		        .sampling()       // Enable sampling capability
-		        .build())
-		    .sampling(request -> Mono.empty() /* (new CreateMessageResult("assistant", "Request: " + request) */)
-		    .toolsChangeConsumer(tools -> Mono.fromRunnable(() -> {
-		        logger.info("Tools updated: {}", tools);
-		    }))
-		    .resourcesChangeConsumer(resources -> Mono.fromRunnable(() -> {
-		        logger.info("Resources updated: {}", resources);
-		    }))
-		    .promptsChangeConsumer(prompts -> Mono.fromRunnable(() -> {
-		        logger.info("Prompts updated: {}", prompts);
-		    }))
-		    .build();
-
-		// Initialize connection and use features
-		InitializeResult initResult = client.initialize().block();
-		
-		Span span = openTelemetry.getTracer(TestMcp.class.getName() + ".rootSpanTracer").spanBuilder("rootSpan").startSpan();
-		ListResourcesResult resources = client
-				.listResources()
-				.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
-				.doFinally(signal -> {
-					span.end();
-				})
-				.block();
-		System.out.println(resources);
-		
-//		    .flatMap(initResult -> client.listTools())
-//		    .flatMap(tools -> {
-//		        return client.callTool(new CallToolRequest(
-//		            "calculator", 
-//		            Map.of("operation", "add", "a", 2, "b", 3)
-//		        ));
-//		    })
-//		    .flatMap(result -> {
-//		        return client.listResources()
-//		            .flatMap(resources -> 
-//		                client.readResource(new ReadResourceRequest("resource://uri"))
-//		            );
-//		    })
-//		    .flatMap(resource -> {
-//		        return client.listPrompts()
-//		            .flatMap(prompts ->
-//		                client.getPrompt(new GetPromptRequest(
-//		                    "greeting", 
-//		                    Map.of("name", "Spring")
-//		                ))
-//		            );
-//		    })
-//		    .flatMap(prompt -> {
-//		        return client.addRoot(new Root("file:///path", "description"))
-//		            .then(client.removeRoot("file:///path"));            
-//		    })
-//		    .doFinally(signalType -> {
-//		        client.closeGracefully().subscribe();
-//		    })
-//		    .subscribe();
-		
-		client.closeGracefully().block();
+//			Hooks.onEachOperator(operator -> {
+//				System.out.println(operator + " " + operator.hashCode());
+//				if (operator instanceof Scannable) {
+//					Scannable parent = ((Scannable) operator).scan(Attr.PARENT);
+//					if (parent != null) {
+//						System.out.println("\t" + parent + " " + parent.hashCode());
+//					}
+//				}
+////				if (operator instanceof Mono) {
+////					return ((Mono<?>) operator).map(result -> {
+////						System.out.println("\t" + result);
+////						return result;
+////					});
+////				}
+//				return operator;
+//			});
+			
+			ListResourcesResult resources = client
+					.listResources()
+//					.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(rootSpan)))
+//					.doFinally(signal -> {
+//						rootSpan.end();
+//					})
+					.block();
+			System.out.println(resources);
+			
+			
+	//		    .flatMap(initResult -> client.listTools())
+	//		    .flatMap(tools -> {
+	//		        return client.callTool(new CallToolRequest(
+	//		            "calculator", 
+	//		            Map.of("operation", "add", "a", 2, "b", 3)
+	//		        ));
+	//		    })
+	//		    .flatMap(result -> {
+	//		        return client.listResources()
+	//		            .flatMap(resources -> 
+	//		                client.readResource(new ReadResourceRequest("resource://uri"))
+	//		            );
+	//		    })
+	//		    .flatMap(resource -> {
+	//		        return client.listPrompts()
+	//		            .flatMap(prompts ->
+	//		                client.getPrompt(new GetPromptRequest(
+	//		                    "greeting", 
+	//		                    Map.of("name", "Spring")
+	//		                ))
+	//		            );
+	//		    })
+	//		    .flatMap(prompt -> {
+	//		        return client.addRoot(new Root("file:///path", "description"))
+	//		            .then(client.removeRoot("file:///path"));            
+	//		    })
+	//		    .doFinally(signalType -> {
+	//		        client.closeGracefully().subscribe();
+	//		    })
+	//		    .subscribe();
+			
+			client.closeGracefully().block();
+		} finally {
+			span.end();
+		}
 	}
 	
 }
