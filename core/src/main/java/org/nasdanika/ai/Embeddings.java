@@ -12,6 +12,19 @@ import reactor.core.publisher.Mono;
  * token usage reporting to implementations.
  */
 public interface Embeddings extends Model {
+	
+	/**
+	 * Embeddings requirement.
+	 * String attributes match any value if null.
+	 * Chunk size is the max input size if more than the max input size or non-positive.
+	 */
+	record Requirement(
+		String provider,
+		String model,
+		String version,
+		int chunkSize,
+		int overlap) {}
+	
 	/**
 	 * 
 	 * @param input

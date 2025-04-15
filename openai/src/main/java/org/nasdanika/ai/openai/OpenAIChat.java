@@ -151,7 +151,8 @@ public class OpenAIChat implements Chat {
 					.put("refusal", message.getRefusal())
 					.build();					
 				span.addEvent("response." + message.getRole(), messageAttributes);
-			}									
+			}	
+			span.setStatus(StatusCode.OK);
 			return response;
 	    } catch (RuntimeException e) {
 			span.setStatus(StatusCode.ERROR);
@@ -217,7 +218,8 @@ public class OpenAIChat implements Chat {
 								.put("refusal", message.getRefusal())
 								.build();					
 							span.addEvent("response." + message.getRole(), messageAttributes);
-						}												
+						}		
+						span.setStatus(StatusCode.OK);
 						return response;
 					})
 					.onErrorMap(error -> {

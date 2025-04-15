@@ -7,6 +7,15 @@ import reactor.core.publisher.Mono;
 
 public interface Chat extends Model {
 	
+	/**
+	 * Chat requirement.
+	 * String attributes match any value if null.
+	 */
+	record Requirement(
+		String provider,
+		String model,
+		String version) {}	
+	
 	interface Message {
 		
 		String getRole();

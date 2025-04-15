@@ -61,6 +61,7 @@ import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
@@ -510,10 +511,29 @@ public class TestMcp {
 		AsyncToolSpecification asyncToolSpecification = new McpServerFeatures.AsyncToolSpecification(
 			new Tool("calculator", "Nasdanika calculator of all great things", schema), 
 			(exchange, arguments) -> {
-				List<Content> result = new ArrayList<>();
-				result.add(new TextContent("Result: " + arguments));
+				return Mono.deferContextual(contextView -> {
+					Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 				
-				return Mono.just(new CallToolResult(result, false));
+			        Span span = openTelemetry.getTracer("calculator")
+				        	.spanBuilder("request")
+				        	.setParent(parentContext)
+				        	.startSpan();				
+
+					List<Content> result = new ArrayList<>();
+					result.add(new TextContent("Result: " + arguments));					
+			        
+			       return Mono.just(new CallToolResult(result, false))
+				        .map(res -> {
+				        	span.setStatus(StatusCode.OK);
+				        	return res;
+						})
+						.onErrorMap(error -> {
+			        			span.recordException(error);
+					        	span.setStatus(StatusCode.ERROR);
+							return error;
+						})
+						.doFinally(signal -> span.end());			        
+				});
 			}
 		);
 		

@@ -1,3 +1,8 @@
+/*
+ * This class is an adaptation of https://github.com/Nasdanika/mcp-java-sdk/blob/main/mcp-spring/mcp-spring-webflux/src/main/java/io/modelcontextprotocol/server/transport/WebFluxSseServerTransportProvider.java
+ * to Reactor Netty and OpenTelemetry.
+ */
+
 package org.nasdanika.ai.mcp.http;
 
 import java.io.ByteArrayOutputStream;

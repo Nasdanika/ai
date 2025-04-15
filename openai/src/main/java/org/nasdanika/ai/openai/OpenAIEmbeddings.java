@@ -76,7 +76,10 @@ public class OpenAIEmbeddings implements Embeddings {
 			int dimensions,
 			EncodingType encodingType,
 			int maxInputTokens,
+			int chunkSize,
+			int overlap,
 			OpenTelemetry openTelemetry) {
+		
 		this.openAIClient = openAIClient;
 		this.openAIAsyncClient = openAIAsyncClient;
 		this.provider = provider;
@@ -101,6 +104,8 @@ public class OpenAIEmbeddings implements Embeddings {
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();
+		
+		// TODO - chunk size and overlap
 	}
 
 	@Override
@@ -138,6 +143,10 @@ public class OpenAIEmbeddings implements Embeddings {
 	@Override
 	public List<List<Float>> generate(String input) {
 		return generate(Collections.singletonList(input)).get(input);
+	}
+	
+	protected List<String> chunk(String input) {
+		return Collections.singletonList(input);
 	}
 
 	@Override
