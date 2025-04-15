@@ -21,19 +21,35 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 	
 	private McpClientTransport target;
 	private Tracer tracer;
+	private Context context;
 
+	public TelemetryMcpClientTransportFilter(
+			McpClientTransport target,
+			Tracer tracer,
+			Context context) {
+		
+		this.target = target;
+		this.tracer = tracer;
+		this.context = context;
+	}
+	
 	public TelemetryMcpClientTransportFilter(
 			McpClientTransport target,
 			Tracer tracer) {
 		
 		this.target = target;
 		this.tracer = tracer;
+		this.context = Context.current();
+	}	
+	
+	public void setContext(Context context) {
+		this.context = context;
 	}
 
 	@Override
 	public Mono<Void> closeGracefully() {
 		return Mono.deferContextual(contextView -> {
-			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
+			Context parentContext = contextView.getOrDefault(Context.class, getContext());
 	        Span span = tracer
 		        	.spanBuilder("closeGracefully")
 		        	.setSpanKind(SpanKind.CLIENT)
@@ -52,7 +68,7 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 					       	span.setStatus(StatusCode.ERROR);
 							return error;
 						})
-						.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+						.contextWrite(reactor.util.context.Context.of(Context.class, getContext().with(span)))
 						.doFinally(signal -> span.end());
 			}
 		});		
@@ -61,7 +77,8 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 	@Override
 	public Mono<Void> sendMessage(JSONRPCMessage message) {
 		return Mono.deferContextual(contextView -> {
-			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
+			Context parentContext = contextView.getOrDefault(Context.class, getContext());
+			
 	        Span span = tracer
 		        	.spanBuilder("sendMessage")
 		        	.setSpanKind(SpanKind.CLIENT)
@@ -81,12 +98,16 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 					       	span.setStatus(StatusCode.ERROR);
 							return error;
 						})
-						.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+						.contextWrite(reactor.util.context.Context.of(Context.class, getContext().with(span)))
 						.doFinally(signal -> {
 							span.end();
 						});
 	        }
 		});		
+	}
+
+	protected Context getContext() {
+		return context == null ? Context.current() : context;
 	}
 
 	@Override
@@ -97,7 +118,7 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 	@Override
 	public Mono<Void> connect(Function<Mono<JSONRPCMessage>, Mono<JSONRPCMessage>> handler) {
 		return Mono.deferContextual(contextView -> {
-			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
+			Context parentContext = contextView.getOrDefault(Context.class, getContext());
 	        Span span = tracer
 		        	.spanBuilder("connect")
 		        	.setSpanKind(SpanKind.CLIENT)
@@ -115,7 +136,7 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 					       	span.setStatus(StatusCode.ERROR);
 							return error;
 						})
-						.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+						.contextWrite(reactor.util.context.Context.of(Context.class, getContext().with(span)))
 						.doFinally(signal -> {
 							span.end();
 						});
@@ -127,7 +148,7 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 	private Function<Mono<JSONRPCMessage>, Mono<JSONRPCMessage>> filterHandler(Function<Mono<JSONRPCMessage>, Mono<JSONRPCMessage>> handler) {
 		return requestMono -> {
 			return Mono.deferContextual(contextView -> {
-				Context parentContext = contextView.getOrDefault(Context.class, Context.current());
+				Context parentContext = contextView.getOrDefault(Context.class, getContext());
 		        Span span = tracer
 			        	.spanBuilder("handle")
 			        	.setSpanKind(SpanKind.CLIENT)
@@ -136,7 +157,7 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 		        
 		        try (Scope scope = span.makeCurrent()) {
 					return 
-						handler.apply(requestMono.doOnNext(request -> span.setAttribute("request", request.toString())))
+						handler.apply(requestMono)
 							.map(result -> {
 						       	span.setStatus(StatusCode.OK);
 						       	span.setAttribute("response", result.toString());
@@ -147,7 +168,7 @@ public class TelemetryMcpClientTransportFilter implements McpClientTransport {
 						       	span.setStatus(StatusCode.ERROR);
 								return error;
 							})
-							.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+							.contextWrite(reactor.util.context.Context.of(Context.class, getContext().with(span)))
 							.doFinally(signal -> span.end());
 		        }
 			});		
