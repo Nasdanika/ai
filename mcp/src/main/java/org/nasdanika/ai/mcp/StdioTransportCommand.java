@@ -15,7 +15,7 @@ import picocli.CommandLine.ParentCommand;
 		mixinStandardHelpOptions = true,
 		name = "stdio")
 @ParentCommands(McpAsyncServerProvider.class)
-@Description(icon = "https://docs.nasdanika.org/images/transfers.svg")
+@Description(icon = "https://docs.nasdanika.org/images/transfer.svg")
 public class StdioTransportCommand extends CommandBase {
 	
 	@ParentCommand

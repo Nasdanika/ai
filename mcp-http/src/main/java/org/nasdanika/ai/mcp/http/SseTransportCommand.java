@@ -14,7 +14,7 @@ import picocli.CommandLine.ParentCommand;
 import reactor.netty.http.server.HttpServerRoutes;
 
 @Command(
-		description = "Routes HTTP requests to a diagram element processor",
+		description = "MCP SSE Transport",
 		versionProvider = ModuleVersionProvider.class,		
 		mixinStandardHelpOptions = true,
 		name = "sse")
