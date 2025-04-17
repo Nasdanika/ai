@@ -1,4 +1,4 @@
-import org.nasdanika.ai.mcp.http.McpHttpServerCommandFactory;
+import org.nasdanika.ai.mcp.http.SseTransportCommandFactory;
 import org.nasdanika.capability.CapabilityFactory;
 
 module org.nasdanika.ai.mcp.http {
@@ -14,10 +14,10 @@ module org.nasdanika.ai.mcp.http {
 	requires reactor.netty.http;
 	requires io.netty.buffer;
 	requires io.opentelemetry.context;
-	requires org.nasdanika.ai.mcp;
+	requires transitive org.nasdanika.ai.mcp;
 	
 	opens org.nasdanika.ai.mcp.http;
 	
-	provides CapabilityFactory with McpHttpServerCommandFactory; 
+	provides CapabilityFactory with SseTransportCommandFactory; 
 		
 }

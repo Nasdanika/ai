@@ -790,8 +790,15 @@ public class TestMcp {
 			    .build();		
 		
 		client.initialize();
-		ListResourcesResult resources = client.listResources();
-		System.out.println(resources);
+		ServerCapabilities serverCapabilities = client.getServerCapabilities();
+		if (serverCapabilities.resources() != null) {
+			ListResourcesResult resources = client.listResources();
+			System.out.println("Resources: " + resources);
+		}
+		if (serverCapabilities.tools() != null) {
+			ListToolsResult tools = client.listTools();
+			System.out.println("Tools: " + tools);
+		}
 		
 		client.closeGracefully();		
 	}

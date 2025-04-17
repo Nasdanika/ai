@@ -435,7 +435,7 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 							Map<String,String> carrier = new HashMap<>();
 							propagator.inject(context, carrier, (cr, name, value) -> cr.put(name, value));		
 							if (!carrier.isEmpty()) {
-								contextMap.put(jRequest.getString(ID_KEY), carrier);
+								contextMap.put(jRequest.get(ID_KEY).toString(), carrier);
 							}
 						}
 					}					

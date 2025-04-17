@@ -28,7 +28,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 
 	@Override
 	public boolean isFor(Class<?> type, Object requirement) {
-		return OpenAIClientBuilder.class == type && (requirement == null || requirement instanceof String || requirement instanceof Consumer);
+		return OpenAIClientBuilder.class == type && (requirement == null || requirement instanceof String);
 	}
 
 	@Override
@@ -38,7 +38,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 			Loader loader,
 			ProgressMonitor progressMonitor) {
 		
-		String endpoint = serviceRequirement instanceof String ? (String) serviceRequirement : null; 
+		String endpoint = (String) serviceRequirement; 
 		CompletionStage<OpenAIClientBuilder> builderCS = CompletableFuture.completedStage(createBuilder(serviceRequirement)); 
 		
 		builderCS = addHttpPipelinePolicies(builderCS, loader, endpoint, progressMonitor);

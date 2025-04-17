@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.opentelemetry.api.OpenTelemetry;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.ParentCommand;
 import reactor.netty.http.server.HttpServerRoutes;
 
@@ -33,14 +34,37 @@ public class SseTransportCommand extends AbstractHttpServerCommand {
 	
 	@ParentCommand
 	private McpAsyncServerProvider asyncServerProvider;
+		
+	@Option(names = "--base-path", defaultValue = "")
+	private String basePath = "";
+	
+	@Option(
+			names = "--resolve-remote-host-name",
+			negatable = true,
+			defaultValue = "true")
+	private boolean resolveRemoteHostName;	
+		
+	@Option(
+			names = "--message-endpoint", 
+			description = "Defaults to ${DEFAULT-VALUE}",
+			defaultValue = "/messages")
+	private String messageEndpoint;	
+	
+	@Option(
+			names = "--sse-endpoint", 
+			description = "Defaults to ${DEFAULT-VALUE}",
+			defaultValue = "/sse")
+	private String sseEndpoint;	
 	
 	protected void buildRoutes(HttpServerRoutes routes) {
 		HttpServerRoutesTransportProvider transportProvider =
-			HttpServerRoutesTransportProvider.builder()
+			HttpServerRoutesTransportProvider.builder()			
 				.propagator(openTelemetry.getPropagators().getTextMapPropagator())
 				.tracer(openTelemetry.getTracer(getInstrumentationScopeName()))
-				.resolveRemoteHostName(true)
-				.messageEndpoint("/messages")
+				.basePath(basePath)
+				.resolveRemoteHostName(resolveRemoteHostName)
+				.sseEndpoint(sseEndpoint)
+				.messageEndpoint(messageEndpoint)
 				.objectMapper(new ObjectMapper())
 				.build(routes);
 		
