@@ -283,7 +283,7 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 					String jsonText = objectMapper.writeValueAsString(message);
 					JSONObject jObj = new JSONObject(jsonText);
 					if (jObj.has(ID_KEY)) {
-						Map<String,String> parentSpanData = contextMap.remove(jObj.getString(ID_KEY));
+						Map<String,String> parentSpanData = contextMap.remove(jObj.get(ID_KEY).toString());
 						if (parentSpanData != null) {
 							TextMapGetter<Map<String, String>> mapper = new TextMapGetter<Map<String,String>>() {
 
