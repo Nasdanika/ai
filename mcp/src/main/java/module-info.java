@@ -1,4 +1,5 @@
 import org.nasdanika.ai.mcp.McpServerCommandFactory;
+import org.nasdanika.ai.mcp.StdioTransportCommandFactory;
 import org.nasdanika.capability.CapabilityFactory;
 
 module org.nasdanika.ai.mcp {
@@ -16,6 +17,8 @@ module org.nasdanika.ai.mcp {
 	
 	opens org.nasdanika.ai.mcp;
 	
-	provides CapabilityFactory with McpServerCommandFactory; 
+	provides CapabilityFactory with 
+		StdioTransportCommandFactory,
+		McpServerCommandFactory; 
 		
 }

@@ -28,8 +28,8 @@ public class OpenTelemetryHttpPipelinePolicyCapabilityFactory extends ServiceCap
 			Loader loader,
 			ProgressMonitor progressMonitor) {
 		
-		Requirement<Object, OpenTelemetry> requirement = ServiceCapabilityFactory.createRequirement(OpenTelemetry.class);
-		CompletionStage<OpenTelemetry> openTelemetryCS = loader.loadOne(requirement, progressMonitor);		
+		Requirement<Object, OpenTelemetry> openTelemetryRequirement = ServiceCapabilityFactory.createRequirement(OpenTelemetry.class);
+		CompletionStage<OpenTelemetry> openTelemetryCS = loader.loadOne(openTelemetryRequirement, progressMonitor);		
 		return wrapCompletionStage(openTelemetryCS.thenApply(ot -> createOpenTelemetryHttpPipelinePolicy(ot, endpoint)));
 	}
 	

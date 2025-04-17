@@ -2,11 +2,14 @@ package org.nasdanika.ai.mcp;
 
 import java.util.function.BiConsumer;
 
+import io.modelcontextprotocol.server.McpServerFeatures.AsyncPromptSpecification;
 import io.modelcontextprotocol.server.McpServerFeatures.AsyncResourceSpecification;
 import io.modelcontextprotocol.server.McpServerFeatures.AsyncToolSpecification;
+import io.modelcontextprotocol.server.McpServerFeatures.SyncPromptSpecification;
 import io.modelcontextprotocol.server.McpServerFeatures.SyncResourceSpecification;
 import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.GetPromptResult;
 import io.modelcontextprotocol.spec.McpSchema.ReadResourceResult;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -158,5 +161,69 @@ public class McpTelemetryFilter {
 				});
 			});
 	}
-
+	
+	public SyncPromptSpecification filter(SyncPromptSpecification syncPromptSpecification) {
+	return new SyncPromptSpecification(
+		syncPromptSpecification.prompt(), 
+		(exchange, request) -> {
+			long start = System.currentTimeMillis();
+			Span span = tracer.spanBuilder("Sync prompt " + syncPromptSpecification.prompt().name())
+				.setAttribute("description", syncPromptSpecification.prompt().description())
+				.startSpan();
+			
+			try (Scope scope = span.makeCurrent()) {				
+				GetPromptResult result = syncPromptSpecification.promptHandler().apply(exchange, request);
+				span.setStatus(StatusCode.OK);
+				return result;
+			} catch (RuntimeException e) {
+				span.recordException(e);
+				span.setStatus(StatusCode.ERROR);
+				throw e;
+			} finally {
+				if (durationConsumer != null) {
+					durationConsumer.accept("tool.sync." + syncPromptSpecification.prompt().name(), System.currentTimeMillis() - start);
+				}
+				span.end();
+			}								
+		});						
+	}
+	
+	public AsyncPromptSpecification filter(AsyncPromptSpecification asyncPromptSpecification) {
+	return new AsyncPromptSpecification(
+		asyncPromptSpecification.prompt(),				
+		(exchange, request) -> {				
+			return Mono.deferContextual(contextView -> {
+				Context parentContext = contextView.getOrDefault(Context.class, Context.current());
+			
+				long start = System.currentTimeMillis();					
+				Span span = tracer.spanBuilder("Async prompt " + asyncPromptSpecification.prompt().name())
+					.setAttribute("description", asyncPromptSpecification.prompt().description())
+					.setParent(parentContext)
+					.startSpan();
+			
+				try (Scope scope = span.makeCurrent()) {
+					Mono<GetPromptResult> publisher = asyncPromptSpecification.promptHandler().apply(exchange, request);
+					return publisher
+						.map(result -> {
+				        	span.setStatus(StatusCode.OK);
+							return result;
+						})
+						.onErrorMap(error -> {
+				        	span.recordException(error);
+				        	span.setStatus(StatusCode.ERROR);
+							return error;
+						})
+			    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+						.doFinally(signal -> {
+							if (durationConsumer != null) {
+								durationConsumer.accept("tool.sync." + asyncPromptSpecification.prompt().name(), System.currentTimeMillis() - start);
+							}
+							span.end();
+						});
+				}
+			});
+		});						
+	}
+	
+	
 }
