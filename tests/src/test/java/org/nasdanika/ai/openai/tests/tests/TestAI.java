@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.Chat;
@@ -38,32 +39,31 @@ public class TestAI {
 			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
 			Iterable<CapabilityProvider<Embeddings>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
 			List<Embeddings> allEmbeddings = new ArrayList<>();
-			embeddingsProviders.forEach(ep -> ep.getPublisher().subscribe(allEmbeddings::add));
-			for (Embeddings embeddings: allEmbeddings) {				
-				assertNotNull(embeddings);
-				System.out.println("=== Embeddings ===");
-				System.out.println("Name:\t" + embeddings.getName());
-				System.out.println("Provider:\t" + embeddings.getProvider());
-				System.out.println("Max input:\t" + embeddings.getMaxInputTokens());
-				System.out.println("Dimensions:\t" + embeddings.getDimensions());
-						
-		        Tracer tracer = openTelemetry.getTracer("test.ai");        
-		        Span span = tracer
-		        	.spanBuilder("Embeddings")
-		        	.startSpan();
-		        
-		        try (Scope scope = span.makeCurrent()) {
-		        	Thread.sleep(200);
+			embeddingsProviders.forEach(ep -> allEmbeddings.addAll(ep.getPublisher().collect(Collectors.toList()).block()));
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Embeddings")
+	        	.startSpan();
+	        
+	        try (Scope scope = span.makeCurrent()) {
+				for (Embeddings embeddings: allEmbeddings) {				
+					assertNotNull(embeddings);
+					System.out.println("=== Embeddings ===");
+					System.out.println("Name:\t" + embeddings.getName());
+					System.out.println("Provider:\t" + embeddings.getProvider());
+					System.out.println("Max input:\t" + embeddings.getMaxInputTokens());
+					System.out.println("Dimensions:\t" + embeddings.getDimensions());
+							
 		        	for (Entry<String, List<List<Float>>> vectors: embeddings.generate(List.of("Hello world!", "Hello universe!")).entrySet()) {		
 		        		System.out.println("\t" + vectors.getKey());
 		        		for (List<Float> vector: vectors.getValue()) {
 		        			System.out.println("\t\t" + vector.size());
 		        		}
 		        	}
-		        } finally {
-		        	span.end();
-		        }
-			}
+				}
+	        } finally {
+	        	span.end();
+	        }
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}
@@ -203,7 +203,6 @@ public class TestAI {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
-		assertNotNull(openTelemetry);
 
 		List<Chat> chats = new ArrayList<>();		
 		try {
@@ -212,12 +211,40 @@ public class TestAI {
 				chatProvider.getPublisher().subscribe(chats::add);
 			}
 			
-			for (Chat chat: chats) {
-				chat(chat, openTelemetry);				
-			}						
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Chat")
+	        	.startSpan();
+	        try (Scope scope = span.makeCurrent()) {			
+				for (Chat chat: chats) {
+					chat(chat, openTelemetry);				
+				}
+	        } finally {
+	        	span.end();
+	        }
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}
+	}
+	
+	private void chat(Chat chat, OpenTelemetry openTelemetry) {
+		System.out.println("=== Chat ===");
+		assertNotNull(chat);
+		System.out.println("Name:\t" + chat.getName());
+		System.out.println("Provider:\t" + chat.getProvider());
+		System.out.println("Max input:\t" + chat.getMaxInputTokens());
+		System.out.println("Max output:\t" + chat.getMaxOutputTokens());
+        
+    	List<ResponseMessage> responses = chat.chat(
+    		Chat.Role.system.createMessage("You are a helpful assistant. You will talk like a pirate."),
+    		Chat.Role.user.createMessage("Can you help me?"),
+    		Chat.Role.system.createMessage("Of course, me hearty! What can I do for ye?"),
+    		Chat.Role.user.createMessage("What's the best way to train a parrot?")
+    	);
+    	
+    	for (ResponseMessage response: responses) {
+    		System.out.println(response.getContent());
+    	}
 	}
 	
 	@Test
@@ -241,35 +268,6 @@ public class TestAI {
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}
-	}
-	
-	private void chat(Chat chat, OpenTelemetry openTelemetry) {
-		System.out.println("=== Chat ===");
-		assertNotNull(chat);
-		System.out.println("Name:\t" + chat.getName());
-		System.out.println("Provider:\t" + chat.getProvider());
-		System.out.println("Max input:\t" + chat.getMaxInputTokens());
-		System.out.println("Max output:\t" + chat.getMaxOutputTokens());
-		
-        Tracer tracer = openTelemetry.getTracer("test.ai");        
-        Span span = tracer
-        	.spanBuilder("Chat")
-        	.startSpan();
-        
-        try (Scope scope = span.makeCurrent()) {
-        	List<ResponseMessage> responses = chat.chat(
-        		Chat.Role.system.createMessage("You are a helpful assistant. You will talk like a pirate."),
-        		Chat.Role.user.createMessage("Can you help me?"),
-        		Chat.Role.system.createMessage("Of course, me hearty! What can I do for ye?"),
-        		Chat.Role.user.createMessage("What's the best way to train a parrot?")
-        	);
-        	
-        	for (ResponseMessage response: responses) {
-        		System.out.println(response.getContent());
-        	}
-        } finally {
-        	span.end();
-        }
 	}
 	
 //	@Test

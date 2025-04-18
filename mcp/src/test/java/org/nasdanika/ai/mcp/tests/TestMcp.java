@@ -116,7 +116,7 @@ public class TestMcp {
 	}
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testClient() throws Exception {
 		ServerParameters params = ServerParameters.builder("C:\\Users\\pavel\\Apps\\nsd-mcp-server\\nsd-mcp-server.bat")
 			    .args("mcp-server")

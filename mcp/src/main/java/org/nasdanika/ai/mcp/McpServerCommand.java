@@ -87,17 +87,17 @@ public class McpServerCommand extends McpServerCommandBase {
 	}
 
 	@Override
-	protected Collection<AsyncResourceSpecification> getResourceSpecifications() {
+	public Collection<AsyncResourceSpecification> getResourceSpecifications() {
 		return resourceSpecifications;
 	}
 
 	@Override
-	protected Collection<AsyncToolSpecification> getToolSpecifications() {
+	public Collection<AsyncToolSpecification> getToolSpecifications() {
 		return toolSpecifications;
 	}
 
 	@Override
-	protected Collection<AsyncPromptSpecification> getPromptSpecifications() {
+	public Collection<AsyncPromptSpecification> getPromptSpecifications() {
 		return promptSpecifications;
 	}
 

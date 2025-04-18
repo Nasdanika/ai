@@ -121,6 +121,7 @@ public class HttpClientTelemetrySseClientTransport implements McpClientTransport
 	/**
 	 * Creates a new transport instance with default HTTP client and object mapper.
 	 * @param baseUri the base URI of the MCP server
+	 * @param tracer If not null, creates a span for sendMessage HTTP request. Pass <code>null</code> when using {@link TelemetryMcpClientTransportFilter} to avoid two nested sendMessage spans 
 	 */
 	public HttpClientTelemetrySseClientTransport(
 			String baseUri, 
@@ -247,8 +248,10 @@ public class HttpClientTelemetrySseClientTransport implements McpClientTransport
 		return Mono.deferContextual(contextView -> {
 			Context parentContext = contextView.getOrDefault(Context.class, Context.current());				
 			long start = System.currentTimeMillis();
-			URI requestURI = URI.create(this.baseUri + endpoint);				
-	        Span requestSpan = tracer
+			URI requestURI = URI.create(this.baseUri + endpoint);
+			
+	        Span requestSpan = tracer == null ? Span.fromContext(parentContext) :	
+	        	tracer
 		        	.spanBuilder("sendMessage")
 		        	.setAttribute("uri", requestURI.toString())
 		        	.setSpanKind(SpanKind.CLIENT)

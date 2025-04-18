@@ -1,0 +1,28 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	  <parent>
+	    <artifactId>parent</artifactId>
+	    <groupId>org.nasdanika.ai</groupId>
+	    <version>2025.3.0</version>
+	    <relativePath>..</relativePath>
+	  </parent>
+	<artifactId>mcp-help</artifactId>
+	<packaging>jar</packaging>
+	<name>Nasdanika AI MCP Help</name>
+	<description>Help contributors to generate capabilities documentation</description>
+	<url>https://docs.nasdanika.org/ai/mcp-http/index.html</url>
+
+	<dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp</artifactId>
+            <version>${project.version}</version>
+        </dependency>      
+        <dependency>
+            <groupId>org.nasdanika.models.app</groupId>
+            <artifactId>cli</artifactId>
+            <version>2025.3.0</version>
+        </dependency>	   
+ 	</dependencies>
+</project>

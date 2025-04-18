@@ -40,15 +40,15 @@ public class McpServerCommandBase extends CommandGroup implements McpAsyncServer
 		this.openTelemetry = openTelemetry;
 	}
 	
-	protected Collection<AsyncResourceSpecification> getResourceSpecifications() {
+	public Collection<AsyncResourceSpecification> getResourceSpecifications() {
 		return Collections.emptyList();
 	}
 	
-	protected Collection<AsyncToolSpecification> getToolSpecifications() {
+	public Collection<AsyncToolSpecification> getToolSpecifications() {
 		return Collections.emptyList();
 	}
 	
-	protected Collection<AsyncPromptSpecification> getPromptSpecifications() {
+	public Collection<AsyncPromptSpecification> getPromptSpecifications() {
 		return Collections.emptyList();
 	}
 	
