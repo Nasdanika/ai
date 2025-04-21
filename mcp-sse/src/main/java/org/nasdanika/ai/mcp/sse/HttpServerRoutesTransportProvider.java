@@ -51,6 +51,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
+//import reactor.core.publisher.ImmutableSignal;
 
 /**
  * Reactor Netty implementation of {@link McpServerTransportProvider}.
@@ -312,7 +313,16 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 				catch (IOException e) {
 					throw Exceptions.propagate(e);
 				}
-			})			
+			})		
+//			.doOnEach(signal -> {
+//				Context ctx = signal.getContextView().getOrDefault(Context.class, Context.current());
+//				if (signal instanceof ImmutableSignal) {
+//					// add data as attribute
+//				}
+////				System.out.println(signal);
+//				Span signalSpan = Span.fromContext(ctx);
+//				signalSpan.addEvent(signal.toString());
+//			})					
 			.doOnNext(jsonText -> {
 				sink.next(new ServerSentEvent("message", jsonText));
 				Span span = spanRef.get();

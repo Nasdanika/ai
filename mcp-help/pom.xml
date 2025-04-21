@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.3.0</version>
+	    <version>2025.4.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>mcp-help</artifactId>
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>org.nasdanika.models.app</groupId>
             <artifactId>cli</artifactId>
-            <version>2025.3.0</version>
+            <version>2025.4.0</version>
         </dependency>	   
  	</dependencies>
 </project>

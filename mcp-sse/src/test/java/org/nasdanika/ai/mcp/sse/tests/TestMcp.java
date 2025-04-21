@@ -171,7 +171,7 @@ public class TestMcp {
 	}
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testSseSyncServer() {
 		DisposableServer server =
 				HttpServer.create()
@@ -183,7 +183,7 @@ public class TestMcp {
 	}	
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testSseAsyncServer() {
 		DisposableServer server =
 				HttpServer.create()
@@ -773,7 +773,7 @@ public class TestMcp {
     }
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testSseClient() throws Exception {
 		McpClientTransport transport = new HttpClientSseClientTransport("http://localhost:8080");
 
@@ -804,12 +804,12 @@ public class TestMcp {
 	}
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testSseTelemetryClient() throws Exception {		
 		OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();
 		McpClientTransport transport = new HttpClientTelemetrySseClientTransport(
 				"http://localhost:8080", 
-				openTelemetry.getTracer(TestMcp.class.getName() + ".transport"),
+				null,
 				openTelemetry.getPropagators().getTextMapPropagator(),
 				null);
 		
@@ -835,11 +835,6 @@ public class TestMcp {
 				    .build();		
 			
 			client.initialize();
-			ListResourcesResult resources = client.listResources();
-			System.out.println(resources);
-			
-			ReadResourceResult resource = client.readResource(new ReadResourceRequest("nasdanika://drawio"));			
-			System.out.println(resource.contents());
 			
 			// List available tools
 			ListToolsResult tools = client.listTools();
@@ -858,11 +853,10 @@ public class TestMcp {
 		}
 	}
 	
-
 	private static final Logger logger = LoggerFactory.getLogger(TestMcp.class);	
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testSseTelemetryAsyncClient() throws Exception {		
 		OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();
 		McpClientTransport transport = new HttpClientTelemetrySseClientTransport(
