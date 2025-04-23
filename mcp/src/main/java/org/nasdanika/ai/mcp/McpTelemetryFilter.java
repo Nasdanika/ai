@@ -1,5 +1,6 @@
 package org.nasdanika.ai.mcp;
 
+import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 
 import io.modelcontextprotocol.server.McpServerFeatures.AsyncPromptSpecification;
@@ -41,6 +42,9 @@ public class McpTelemetryFilter {
 					.setAttribute("description", syncToolSpecification.tool().description())
 					.startSpan();
 				
+				for (Entry<String, Object> re: request.entrySet()) {
+					span.setAttribute("request." + re.getKey(), String.valueOf(re.getValue()));
+				}
 				try (Scope scope = span.makeCurrent()) {				
 					CallToolResult result = syncToolSpecification.call().apply(exchange, request);
 					span.setStatus(StatusCode.OK);
@@ -70,6 +74,10 @@ public class McpTelemetryFilter {
 						.setAttribute("description", asyncToolSpecification.tool().description())
 						.setParent(parentContext)
 						.startSpan();
+					
+					for (Entry<String, Object> re: request.entrySet()) {
+						span.setAttribute("request." + re.getKey(), String.valueOf(re.getValue()));
+					}
 				
 					try (Scope scope = span.makeCurrent()) {
 						Mono<CallToolResult> publisher = asyncToolSpecification.call().apply(exchange, request);
@@ -102,7 +110,8 @@ public class McpTelemetryFilter {
 				long start = System.currentTimeMillis();
 				Span span = tracer.spanBuilder("Sync resource " + syncResourceSpecification.resource().name())
 					.setAttribute("description", syncResourceSpecification.resource().description())
-					.setAttribute("uri", syncResourceSpecification.resource().uri())
+					.setAttribute("resource-uri", syncResourceSpecification.resource().uri())
+					.setAttribute("request-uri", request.uri())
 					.setAttribute("mime-type", syncResourceSpecification.resource().mimeType())
 					.startSpan();
 				
@@ -131,9 +140,10 @@ public class McpTelemetryFilter {
 					Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 				
 					long start = System.currentTimeMillis();					
-					Span span = tracer.spanBuilder("Async tool " + asyncResourceSpecification.resource().name())
+					Span span = tracer.spanBuilder("Async resource " + asyncResourceSpecification.resource().name())
 						.setAttribute("description", asyncResourceSpecification.resource().description())
-						.setAttribute("uri", asyncResourceSpecification.resource().uri())
+						.setAttribute("resource-uri", asyncResourceSpecification.resource().uri())
+						.setAttribute("request-uri", request.uri())
 						.setAttribute("mime-type", asyncResourceSpecification.resource().mimeType())
 						.setParent(parentContext)
 						.startSpan();
@@ -223,7 +233,6 @@ public class McpTelemetryFilter {
 				}
 			});
 		});						
-	}
-	
+	}	
 	
 }
