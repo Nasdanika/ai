@@ -47,7 +47,7 @@ public class SseTransportCommand extends AbstractHttpServerCommand {
 	@Option(
 			names = "--message-endpoint", 
 			description = "Defaults to ${DEFAULT-VALUE}",
-			defaultValue = "/messages")
+			defaultValue = "/sse")
 	private String messageEndpoint;	
 	
 	@Option(
