@@ -76,8 +76,6 @@ public class OpenAIEmbeddings implements Embeddings {
 			int dimensions,
 			EncodingType encodingType,
 			int maxInputTokens,
-			int chunkSize,
-			int overlap,
 			OpenTelemetry openTelemetry) {
 		
 		this.openAIClient = openAIClient;
@@ -104,8 +102,6 @@ public class OpenAIEmbeddings implements Embeddings {
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();
-		
-		// TODO - chunk size and overlap
 	}
 
 	@Override

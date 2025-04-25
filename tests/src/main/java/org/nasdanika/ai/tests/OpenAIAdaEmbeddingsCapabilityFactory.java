@@ -54,18 +54,13 @@ public class OpenAIAdaEmbeddingsCapabilityFactory extends ServiceCapabilityFacto
 		
 		CompletionStage<OpenAIClientBuilder> openAIClientBuilderCS = loader.loadOne(openAIClientBuilderRequirement, progressMonitor);
 		
-		int chunkSize = serviceRequirement == null ? 0 : serviceRequirement.chunkSize();
-		int overlap = serviceRequirement == null ? 0 : serviceRequirement.overlap();
-		
-		BiFunction<OpenAIClientBuilder, OpenTelemetry, Embeddings> combiner = (openAIClientBuilder, openTelemetry) -> createEmbeddings(openAIClientBuilder, openTelemetry, chunkSize, overlap);
+		BiFunction<OpenAIClientBuilder, OpenTelemetry, Embeddings> combiner = (openAIClientBuilder, openTelemetry) -> createEmbeddings(openAIClientBuilder, openTelemetry);
 		return wrapCompletionStage(openAIClientBuilderCS.thenCombine(openTelemetryCS, combiner));
 	}
 		
 	protected Embeddings createEmbeddings(
 			OpenAIClientBuilder openAIClientBuilder, 
-			OpenTelemetry openTelemetry,
-			int chunkSize,
-			int overlap) {
+			OpenTelemetry openTelemetry) {
 		return new OpenAIEmbeddings(
 				openAIClientBuilder.buildClient(),
 				openAIClientBuilder.buildAsyncClient(),
@@ -75,8 +70,6 @@ public class OpenAIAdaEmbeddingsCapabilityFactory extends ServiceCapabilityFacto
 				1536,
 				EncodingType.CL100K_BASE,
 				8191,
-				chunkSize,
-				overlap,
 				openTelemetry);
 	}
 	

@@ -43,16 +43,11 @@ public class SnowflakeArcticEmbedOllamatCapabilityFactory extends ServiceCapabil
 		Requirement<Object, OpenTelemetry> openTelemetryRequirement = ServiceCapabilityFactory.createRequirement(OpenTelemetry.class);
 		CompletionStage<OpenTelemetry> openTelemetryCS = loader.loadOne(openTelemetryRequirement, progressMonitor);
 		
-		int chunkSize = serviceRequirement == null ? 0 : serviceRequirement.chunkSize();
-		int overlap = serviceRequirement == null ? 0 : serviceRequirement.overlap();
-		
-		return wrapCompletionStage(openTelemetryCS.thenApply(openTelemetry -> createEmbeddings(openTelemetry, chunkSize, overlap)));
+		return wrapCompletionStage(openTelemetryCS.thenApply(openTelemetry -> createEmbeddings(openTelemetry)));
 	}
 		
 	protected Embeddings createEmbeddings(
-			OpenTelemetry openTelemetry,
-			int chunkSize,
-			int overlap) {
+			OpenTelemetry openTelemetry) {
 		return new OllamaEmbeddings(
 				"http://localhost:11434/api/", 
 				PROVIDER, 
@@ -61,8 +56,6 @@ public class SnowflakeArcticEmbedOllamatCapabilityFactory extends ServiceCapabil
 				1024,
 				null, // unknown
 				8192, 
-				chunkSize,
-				overlap,
 				openTelemetry);
 	}	
 

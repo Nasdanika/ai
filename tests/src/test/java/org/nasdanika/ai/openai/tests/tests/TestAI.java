@@ -3,15 +3,25 @@ package org.nasdanika.ai.openai.tests.tests;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.Chat.ResponseMessage;
 import org.nasdanika.ai.Embeddings;
+import org.nasdanika.ai.EncodingChunkingEmbeddings;
 import org.nasdanika.capability.CapabilityLoader;
 import org.nasdanika.capability.CapabilityProvider;
 import org.nasdanika.capability.ServiceCapabilityFactory;
@@ -19,12 +29,15 @@ import org.nasdanika.capability.ServiceCapabilityFactory.Requirement;
 import org.nasdanika.common.PrintStreamProgressMonitor;
 import org.nasdanika.common.ProgressMonitor;
 
+import com.knuddels.jtokkit.api.EncodingType;
+
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import reactor.core.publisher.Mono;
 
 public class TestAI {
 	
@@ -79,7 +92,7 @@ public class TestAI {
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);			
 			
-			Embeddings.Requirement eReq = new Embeddings.Requirement("Ollama", null, null, 0, 0);
+			Embeddings.Requirement eReq = new Embeddings.Requirement("Ollama", null, null);
 			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
 			Iterable<CapabilityProvider<Embeddings>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
 			List<Embeddings> allEmbeddings = new ArrayList<>();
@@ -287,5 +300,86 @@ public class TestAI {
 //		.block();
 //		System.out.println(result);		
 //	}
+		
+	/**
+	 * Generates OpenAI embeddings for site pages and adds them to search-documents-embeddings.json
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void testGenerateSearchDocumentsJSONOpenAIAsyncEmbeddings() throws Exception {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		try {
+			Embeddings.Requirement eReq = new Embeddings.Requirement("OpenAI", "text-embedding-ada-002", null);
+			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
+			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			assertNotNull(embeddings);
+			assertEquals("text-embedding-ada-002", embeddings.getName());
+			assertEquals("OpenAI", embeddings.getProvider());
+			assertEquals(1536, embeddings.getDimensions());
+			
+			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+			assertNotNull(openTelemetry);
+	
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Search embeddings")
+	        	.startSpan();
+	        
+	        try (Scope scope = span.makeCurrent()) {	        
+		        Collection<Mono<List<List<Float>>>> tasks = new ArrayList<>();
+		        Embeddings chunkingEmbeddings = new EncodingChunkingEmbeddings(
+		        		embeddings, 
+		        		1000, 
+		        		20, 
+		        		EncodingType.CL100K_BASE);
+		        
+				File input =  new File("../../nasdanika.github.io/docs/search-documents.json").getCanonicalFile();
+				try (InputStream in = new FileInputStream(input)) {
+					JSONObject jsonObject = new JSONObject(new JSONTokener(in));
+					for (String path: jsonObject.keySet()) {		
+						JSONObject data = jsonObject.getJSONObject(path);
+						String content = data.getString("content");
+						Mono<List<List<Float>>> task = chunkingEmbeddings
+							.generateAsync(content)
+							.map(vectors -> {
+								JSONObject jEmbeddings = new JSONObject();
+								jEmbeddings.put("provider", embeddings.getProvider());
+								jEmbeddings.put("model", embeddings.getName());
+								String version = embeddings.getVersion();
+								if (version != null) {
+									jEmbeddings.put("version", embeddings.getVersion());
+								}
+								jEmbeddings.put("dimensions", embeddings.getDimensions());
+								JSONArray jVectors = new JSONArray();
+								jEmbeddings.put("vectors", jVectors);
+								for (List<Float> vector: vectors) {
+									jVectors.put(vector);
+								}
+								
+								synchronized (jsonObject) {
+									data.put("embeddings", jEmbeddings);
+									System.out.print("." + vectors.size());
+								}
+								return vectors;
+							})
+							.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
+						
+						tasks.add(task);
+					}
+					Mono.zip(tasks, result -> result).block();
+					File output =  new File("../../nasdanika.github.io/docs/search-documents-embeddings.json");
+					try (Writer writer = new FileWriter(output)) {
+						jsonObject.write(writer);
+					}					
+				}					        
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}
+	
 	
 }

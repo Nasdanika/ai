@@ -76,8 +76,6 @@ public class OllamaEmbeddings implements Embeddings {
 			int dimensions,
 			EncodingType encodingType,
 			int maxInputTokens,
-			int chunkSize,
-			int overlap,
 			OpenTelemetry openTelemetry) {
 		this.endpoint = endpoint;
 		this.provider = provider;
@@ -103,8 +101,6 @@ public class OllamaEmbeddings implements Embeddings {
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();		
-		
-		// TODO - chunk size and overlap
 	}
 
 	@Override
