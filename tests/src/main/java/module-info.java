@@ -2,6 +2,7 @@ import org.nasdanika.ai.tests.EnvironmentVariableKeyCredentialCapabilityFactory;
 import org.nasdanika.ai.tests.Llama32OllamaChatCapabilityFactory;
 import org.nasdanika.ai.tests.OpenAIAdaEmbeddingsCapabilityFactory;
 import org.nasdanika.ai.tests.OpenAIGpt35TurboChatCapabilityFactory;
+import org.nasdanika.ai.tests.OpenAIGpt4oChatCapabilityFactory;
 import org.nasdanika.ai.tests.SnowflakeArcticEmbedOllamatCapabilityFactory;
 import org.nasdanika.capability.CapabilityFactory;
 
@@ -17,6 +18,7 @@ module org.nasdanika.ai.openai.tests {
 		EnvironmentVariableKeyCredentialCapabilityFactory,
 		OpenAIAdaEmbeddingsCapabilityFactory,
 		OpenAIGpt35TurboChatCapabilityFactory,
+		OpenAIGpt4oChatCapabilityFactory,
 		Llama32OllamaChatCapabilityFactory,
 		SnowflakeArcticEmbedOllamatCapabilityFactory;
 	

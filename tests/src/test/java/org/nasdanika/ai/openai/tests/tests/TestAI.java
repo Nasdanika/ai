@@ -7,10 +7,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -20,8 +23,13 @@ import org.json.JSONTokener;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.Chat.ResponseMessage;
+import org.nasdanika.ai.ChunkingEmbeddings;
 import org.nasdanika.ai.Embeddings;
+import org.nasdanika.ai.EmbeddingsResource;
+import org.nasdanika.ai.EmbeddingsResourceSet;
 import org.nasdanika.ai.EncodingChunkingEmbeddings;
+import org.nasdanika.ai.SearchResult;
+import org.nasdanika.ai.SimilaritySearch;
 import org.nasdanika.capability.CapabilityLoader;
 import org.nasdanika.capability.CapabilityProvider;
 import org.nasdanika.capability.ServiceCapabilityFactory;
@@ -29,6 +37,9 @@ import org.nasdanika.capability.ServiceCapabilityFactory.Requirement;
 import org.nasdanika.common.PrintStreamProgressMonitor;
 import org.nasdanika.common.ProgressMonitor;
 
+import com.github.jelmerk.hnswlib.core.DistanceFunctions;
+import com.github.jelmerk.hnswlib.core.Item;
+import com.github.jelmerk.hnswlib.core.hnsw.HnswIndex;
 import com.knuddels.jtokkit.api.EncodingType;
 
 import io.opentelemetry.api.OpenTelemetry;
@@ -37,6 +48,7 @@ import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class TestAI {
@@ -339,6 +351,8 @@ public class TestAI {
 					JSONObject jsonObject = new JSONObject(new JSONTokener(in));
 					for (String path: jsonObject.keySet()) {		
 						JSONObject data = jsonObject.getJSONObject(path);
+						JSONArray ea = new JSONArray();
+						data.put("embeddings", ea);
 						String content = data.getString("content");
 						Mono<List<List<Float>>> task = chunkingEmbeddings
 							.generateAsync(content)
@@ -358,7 +372,7 @@ public class TestAI {
 								}
 								
 								synchronized (jsonObject) {
-									data.put("embeddings", jEmbeddings);
+									ea.put(jEmbeddings);
 									System.out.print("." + vectors.size());
 								}
 								return vectors;
@@ -381,5 +395,219 @@ public class TestAI {
 		}
 	}
 	
+	record IndexId(String uri, int index) implements Serializable {}
+	record EmbeddingsItem(IndexId id, float[] vector, int dimensions) implements Item<IndexId,float[]> {}	
+	
+	@Test
+	public void testRAG() throws Exception {
+		// Creating a embeddings resource set from search-documents-embeddings.json
+		Collection<EmbeddingsResource> resources = new ArrayList<>(); 
+		File input =  new File("test-data/search-documents-embeddings.json").getCanonicalFile();
+		try (InputStream in = new FileInputStream(input)) {
+			JSONObject jsonObject = new JSONObject(new JSONTokener(in));
+			for (String path: jsonObject.keySet()) {		
+				JSONObject data = jsonObject.getJSONObject(path);
+				JSONArray ea = data.getJSONArray("embeddings");
+				for (int i = 0; i < ea.length(); ++i) {
+					JSONObject embeddings = ea.getJSONObject(i);				
+					resources.add(new EmbeddingsResource() {
+						
+						@Override
+						public String getVersion() {							
+							return embeddings.optString("version");
+						}
+						
+						@Override
+						public String getProvider() {
+							return embeddings.getString("provider");
+						}
+						
+						@Override
+						public String getName() {
+							return embeddings.getString("model");
+						}
+						
+						@Override
+						public String getUri() {
+							return "https://docs.nasdanika.org/" + path;
+						}
+						
+						@Override
+						public List<List<Float>> getEmbeddings() {
+							JSONArray vectors = embeddings.getJSONArray("vectors");
+							List<List<Float>> ret = new ArrayList<>();
+							for (int i = 0; i < vectors.length(); ++i) {
+								JSONArray vector = vectors.getJSONArray(i);
+								List<Float> v = new ArrayList<>();
+								for (int j = 0; j < vector.length(); ++j) {
+									v.add(vector.getFloat(j));
+								}
+								ret.add(v);
+							}
+							return ret;
+						}
+						
+						@Override
+						public int getDimensions() {
+							return embeddings.getInt("dimensions");
+						}
+						
+						@Override
+						public String getContent() {
+							return data.getString("content");
+						}
+					});
+				}
+			}
+		}
+				
+		EmbeddingsResourceSet resourceSet = new EmbeddingsResourceSet() {
+			
+			@Override
+			public Flux<EmbeddingsResource> getResources() {
+				return Flux.fromIterable(resources);
+			}
+			
+		};
+		
+		// Similarity search index				
+		HnswIndex<IndexId, float[], EmbeddingsItem, Float> hnswIndex = HnswIndex
+			.newBuilder(1536, DistanceFunctions.FLOAT_EUCLIDEAN_DISTANCE, resources.size())
+			.withM(16)
+			.withEf(200)
+			.withEfConstruction(200)
+			.build();
+		
+		Map<String, String> contentMap = new HashMap<>();
+		
+		resourceSet.getResources().subscribe(er -> {
+			List<List<Float>> vectors = er.getEmbeddings();
+			for (int i = 0; i < vectors.size(); ++i) {
+				List<Float> vector = vectors.get(i);
+				float[] fVector = new float[vector.size()];
+				for (int j = 0; j < fVector.length; ++j) {
+					fVector[j] = vector.get(j);
+				}
+				hnswIndex.add(new EmbeddingsItem(
+						new IndexId(er.getUri(), i), 
+						fVector, 
+						er.getDimensions()));				
+			}
+			contentMap.put(er.getUri(), er.getContent());
+//			System.out.println(er.getUri() + " " + er.getEmbeddings().size() + " " + er.getContent().length());
+		});
+		
+		hnswIndex.save(new File("test-data/hnsw-index.bin"));
+		
+		SimilaritySearch<List<Float>, Float> vectorSearch = new SimilaritySearch<List<Float>, Float>() {
+			
+			@Override
+			public Mono<List<SearchResult<Float>>> findAsync(List<Float> query, int numberOfItems) {
+				return Mono.just(find(query, numberOfItems));
+			}
+			
+			@Override
+			public List<SearchResult<Float>> find(List<Float> query, int numberOfItems) {
+				float[] fVector = new float[query.size()];
+				for (int j = 0; j < fVector.length; ++j) {
+					fVector[j] = query.get(j);
+				}
+				List<SearchResult<Float>> ret = new ArrayList<>();
+				for (com.github.jelmerk.hnswlib.core.SearchResult<EmbeddingsItem, Float> nearest: hnswIndex.findNearest(fVector, numberOfItems)) {
+					ret.add(new SearchResult<Float>() {
+						
+						@Override
+						public String getUri() {
+							return nearest.item().id().uri();
+						}
+						
+						@Override
+						public int getIndex() {
+							return nearest.item().id().index();
+						}
+						
+						@Override
+						public Float getDistance() {
+							return nearest.distance();
+						}
+						
+					});
+				}
+				return ret;
+			}
+			
+		};		
+		
+		SimilaritySearch<List<List<Float>>, Float> multiVectorSearch = SimilaritySearch.adapt(vectorSearch);	
+		
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		try {
+			Embeddings.Requirement eReq = new Embeddings.Requirement("OpenAI", "text-embedding-ada-002", null);
+			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
+			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			
+			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+			assertNotNull(openTelemetry);
+	
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Search embeddings")
+	        	.startSpan();
+	        
+	        try (Scope scope = span.makeCurrent()) {	        
+		        ChunkingEmbeddings<?> chunkingEmbeddings = new EncodingChunkingEmbeddings(
+		        		embeddings, 
+		        		1000, 
+		        		20, 
+		        		EncodingType.CL100K_BASE);
+		        
+				SimilaritySearch<String, Float> textSearch = SimilaritySearch.embeddingsSearch(multiVectorSearch, chunkingEmbeddings);
+				
+				String query = 
+					"""
+					I have a Drawio diagram. I want to generate a documentation web site from the diagram and publish it to GitHub pages.	
+					""";
+				
+				List<SearchResult<Float>> searchResults = textSearch.find(query, 10);
+				for (SearchResult<Float> searchResult: searchResults) {
+					System.out.println("=== " + searchResult.getDistance() + " " + searchResult.getUri() + " " + searchResult.getIndex() + " ===");
+//					System.out.println(contentMap.get(searchResult.getUri()));
+				}		
+				
+				// Chat
+				Chat.Requirement cReq = new Chat.Requirement("OpenAI", "gpt-4o", null);
+				Requirement<Chat.Requirement, Chat> chatRequirement = ServiceCapabilityFactory.createRequirement(Chat.class, null, cReq);
+				Chat chat = capabilityLoader.loadOne(chatRequirement, progressMonitor);
+				System.out.println("=== Chat ===");
+				
+				List<Chat.Message> messages = new ArrayList<>();
+	    		messages.add(Chat.Role.system.createMessage("You are a helpful assistant. You will answer user question leveraging provided documents and provide references to the used documents. Output your answer in markdown"));
+	    		messages.add(Chat.Role.user.createMessage(query));
+	    		
+	    		Map<String, List<SearchResult<Float>>> groupedResults = org.nasdanika.common.Util.groupBy(searchResults, SearchResult::getUri);
+				for (Entry<String, List<SearchResult<Float>>> sre: groupedResults.entrySet()) {
+					StringBuilder messageBuilder = new StringBuilder("Use this document with URL " + sre.getKey() + ":" + System.lineSeparator());
+					List<String> chunks = chunkingEmbeddings.chunk(contentMap.get(sre.getKey()));
+					for (SearchResult<Float> chunkResult: sre.getValue()) {
+						String chunk = chunks.get(chunkResult.getIndex());
+						messageBuilder.append(System.lineSeparator() + System.lineSeparator() + chunk);
+					}
+					
+					messages.add(Chat.Role.system.createMessage(messageBuilder.toString()));
+				}		
+				
+		    	List<ResponseMessage> responses = chat.chat(messages);		    			    	
+		    	
+		    	for (ResponseMessage response: responses) {
+		    		System.out.println(response.getContent());
+		    	}				
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}		
+	}	
 	
 }

@@ -53,16 +53,23 @@ public abstract class ChunkingEmbeddings<T> implements Embeddings {
 	public int getDimensions() {
 		return target.getDimensions();
 	}
+	
+	public List<String> chunk(String input) {
+		List<String> result = new ArrayList<>();
+		T tokens = encode(input);
+		for (int i = 0, l = size(tokens); i < l; i += chunkSize) {
+			if (i > overlap) {
+				i -= overlap;
+			}
+			T slice = slice(tokens, i, chunkSize);
+			result.add(decode(slice));
+		}
+		return result;		
+	}
 
 	@Override
 	public Mono<List<List<Float>>> generateAsync(String input) {
-		List<String> chunks = new ArrayList<>();
-		T tokens = encode(input);
-		for (int i = 0, l = size(tokens); i < l; i += chunkSize) {
-			T slice = slice(tokens, i > overlap ? i - overlap : i, chunkSize);
-			chunks.add(decode(slice));
-		}
-
+		List<String> chunks = chunk(input);
 		return target.generateAsync(chunks).map(chunkMap -> {
 			List<List<Float>> result = new ArrayList<>();
 			for (String chunk: chunks) {
@@ -75,13 +82,7 @@ public abstract class ChunkingEmbeddings<T> implements Embeddings {
 	@Override
 	public List<List<Float>> generate(String input) {
 		List<List<Float>> result = new ArrayList<>();
-		T tokens = encode(input);
-		for (int i = 0, l = size(tokens); i < l; i += chunkSize) {
-			if (i > overlap) {
-				i -= overlap;
-			}
-			T slice = slice(tokens, i, chunkSize);
-			String chunk = decode(slice);
+		for (String chunk: chunk(input)) {		
 			result.addAll(target.generate(chunk));
 		}
 		return result;

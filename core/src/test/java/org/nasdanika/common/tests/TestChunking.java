@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.CharChunkingEmbeddings;
+import org.nasdanika.ai.ChunkingEmbeddings;
 import org.nasdanika.ai.Embeddings;
 import org.nasdanika.ai.EncodingChunkingEmbeddings;
 
@@ -76,8 +77,11 @@ public class TestChunking {
 	public void testEncodingChunking() {
 		EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
 		Encoding enc = registry.getEncoding(EncodingType.CL100K_BASE);
-		Embeddings ece = new EncodingChunkingEmbeddings(fakeEmbeddings, 5, 1, enc);		
-		List<List<Float>> vectors = ece.generate("A quick brown fox jumps over a sleepy dog");
+		ChunkingEmbeddings<?> ece = new EncodingChunkingEmbeddings(fakeEmbeddings, 5, 1, enc);		
+		String input = "A quick brown fox jumps over a sleepy dog";
+		ece.chunk(input).forEach(System.out::println);		
+		
+		List<List<Float>> vectors = ece.generate(input);
 		
 		for (List<Float> vector: vectors) {
 			System.out.println(vector);
