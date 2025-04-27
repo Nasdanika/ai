@@ -1,18 +1,12 @@
 package org.nasdanika.ai;
 
-import java.util.List;
+import reactor.core.publisher.Flux;
 
 /**
- * A pre-computed embeddings
+ * A collection of strings pre-computed embeddings, e.g. web site contents.
  */
-public interface EmbeddingsResource extends Coordinates {
+public interface EmbeddingsResource {
 	
-	String getUri();
-	
-	String getContent();
-	
-	int getDimensions();
-	
-	List<List<Float>> getEmbeddings();
+	Flux<EmbeddingsResourceContents> getResources();	
 	
 }

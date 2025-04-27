@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
@@ -25,8 +26,8 @@ import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.Chat.ResponseMessage;
 import org.nasdanika.ai.ChunkingEmbeddings;
 import org.nasdanika.ai.Embeddings;
+import org.nasdanika.ai.EmbeddingsResourceContents;
 import org.nasdanika.ai.EmbeddingsResource;
-import org.nasdanika.ai.EmbeddingsResourceSet;
 import org.nasdanika.ai.EncodingChunkingEmbeddings;
 import org.nasdanika.ai.SearchResult;
 import org.nasdanika.ai.SimilaritySearch;
@@ -338,6 +339,10 @@ public class TestAI {
 	        	.spanBuilder("Search embeddings")
 	        	.startSpan();
 	        
+	        int documents = 0;
+	        int textLength = 0; 
+	        AtomicInteger vectorCount = new AtomicInteger();
+	        
 	        try (Scope scope = span.makeCurrent()) {	        
 		        Collection<Mono<List<List<Float>>>> tasks = new ArrayList<>();
 		        Embeddings chunkingEmbeddings = new EncodingChunkingEmbeddings(
@@ -354,6 +359,8 @@ public class TestAI {
 						JSONArray ea = new JSONArray();
 						data.put("embeddings", ea);
 						String content = data.getString("content");
+						textLength += content.length();
+						++documents;
 						Mono<List<List<Float>>> task = chunkingEmbeddings
 							.generateAsync(content)
 							.map(vectors -> {
@@ -369,6 +376,7 @@ public class TestAI {
 								jEmbeddings.put("vectors", jVectors);
 								for (List<Float> vector: vectors) {
 									jVectors.put(vector);
+									vectorCount.incrementAndGet();
 								}
 								
 								synchronized (jsonObject) {
@@ -390,6 +398,7 @@ public class TestAI {
 	        } finally {
 	        	span.end();
 	        }
+	        System.out.println("Documents " + documents + ", length " + textLength + ", vectors " + vectorCount.get());
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}
@@ -401,7 +410,7 @@ public class TestAI {
 	@Test
 	public void testRAG() throws Exception {
 		// Creating a embeddings resource set from search-documents-embeddings.json
-		Collection<EmbeddingsResource> resources = new ArrayList<>(); 
+		Collection<EmbeddingsResourceContents> resources = new ArrayList<>(); 
 		File input =  new File("test-data/search-documents-embeddings.json").getCanonicalFile();
 		try (InputStream in = new FileInputStream(input)) {
 			JSONObject jsonObject = new JSONObject(new JSONTokener(in));
@@ -410,7 +419,7 @@ public class TestAI {
 				JSONArray ea = data.getJSONArray("embeddings");
 				for (int i = 0; i < ea.length(); ++i) {
 					JSONObject embeddings = ea.getJSONObject(i);				
-					resources.add(new EmbeddingsResource() {
+					resources.add(new EmbeddingsResourceContents() {
 						
 						@Override
 						public String getVersion() {							
@@ -461,10 +470,10 @@ public class TestAI {
 			}
 		}
 				
-		EmbeddingsResourceSet resourceSet = new EmbeddingsResourceSet() {
+		EmbeddingsResource resourceSet = new EmbeddingsResource() {
 			
 			@Override
-			public Flux<EmbeddingsResource> getResources() {
+			public Flux<EmbeddingsResourceContents> getResources() {
 				return Flux.fromIterable(resources);
 			}
 			
@@ -472,7 +481,7 @@ public class TestAI {
 		
 		// Similarity search index				
 		HnswIndex<IndexId, float[], EmbeddingsItem, Float> hnswIndex = HnswIndex
-			.newBuilder(1536, DistanceFunctions.FLOAT_EUCLIDEAN_DISTANCE, resources.size())
+			.newBuilder(1536, DistanceFunctions.FLOAT_COSINE_DISTANCE, resources.size())
 			.withM(16)
 			.withEf(200)
 			.withEfConstruction(200)

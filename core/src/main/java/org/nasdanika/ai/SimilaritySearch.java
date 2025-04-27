@@ -8,6 +8,11 @@ import java.util.function.Function;
 
 import reactor.core.publisher.Mono;
 
+/**
+ * 
+ * @param <T> Search result and query type, e.g. <code>String</code>
+ * @param <D> Distance type, e.g. <code>Float</code>
+ */
 public interface SimilaritySearch<T,D extends Comparable<D>> {
 	
 	/**
