@@ -9,7 +9,9 @@ public interface EmbeddingsResourceContents extends Coordinates {
 	
 	String getUri();
 	
-	String getContent();
+	String getMimeType();
+	
+	String getContents();
 	
 	int getDimensions();
 	

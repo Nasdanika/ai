@@ -7,6 +7,8 @@ import reactor.core.publisher.Flux;
  */
 public interface EmbeddingsResource {
 	
-	Flux<EmbeddingsResourceContents> getResources();	
+	String getMimeType();
+	
+	Flux<EmbeddingsResourceContents> getContents();	
 	
 }

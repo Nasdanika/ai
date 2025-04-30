@@ -35,6 +35,7 @@ import org.nasdanika.capability.CapabilityLoader;
 import org.nasdanika.capability.CapabilityProvider;
 import org.nasdanika.capability.ServiceCapabilityFactory;
 import org.nasdanika.capability.ServiceCapabilityFactory.Requirement;
+import org.nasdanika.common.MarkdownHelper;
 import org.nasdanika.common.PrintStreamProgressMonitor;
 import org.nasdanika.common.ProgressMonitor;
 
@@ -42,6 +43,7 @@ import com.github.jelmerk.hnswlib.core.DistanceFunctions;
 import com.github.jelmerk.hnswlib.core.Item;
 import com.github.jelmerk.hnswlib.core.hnsw.HnswIndex;
 import com.knuddels.jtokkit.api.EncodingType;
+import com.knuddels.jtokkit.api.IntArrayList;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -323,8 +325,12 @@ public class TestAI {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
-			Embeddings.Requirement eReq = new Embeddings.Requirement("OpenAI", "text-embedding-ada-002", null);
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
+			Embeddings.Requirement eReq = new Embeddings.Requirement(
+					"OpenAI", 
+					"text-embedding-ada-002", 
+					null);
+			Requirement<Embeddings.Requirement, Embeddings> requirement = 
+					ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
 			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
 			assertNotNull(embeddings);
 			assertEquals("text-embedding-ada-002", embeddings.getName());
@@ -342,6 +348,7 @@ public class TestAI {
 	        int documents = 0;
 	        int textLength = 0; 
 	        AtomicInteger vectorCount = new AtomicInteger();
+	        AtomicInteger tokenCount = new AtomicInteger();
 	        
 	        try (Scope scope = span.makeCurrent()) {	        
 		        Collection<Mono<List<List<Float>>>> tasks = new ArrayList<>();
@@ -349,7 +356,15 @@ public class TestAI {
 		        		embeddings, 
 		        		1000, 
 		        		20, 
-		        		EncodingType.CL100K_BASE);
+		        		EncodingType.CL100K_BASE) {
+		        	
+		        	@Override
+		        	protected IntArrayList encode(String input) {
+		        		IntArrayList tokens = super.encode(input);
+		        		tokenCount.addAndGet(tokens.size());
+						return tokens;
+		        	}
+		        };
 		        
 				File input =  new File("../../nasdanika.github.io/docs/search-documents.json").getCanonicalFile();
 				try (InputStream in = new FileInputStream(input)) {
@@ -398,7 +413,7 @@ public class TestAI {
 	        } finally {
 	        	span.end();
 	        }
-	        System.out.println("Documents " + documents + ", length " + textLength + ", vectors " + vectorCount.get());
+	        System.out.println("Documents " + documents + ", length " + textLength + ", tokens " + tokenCount + ", vectors " + vectorCount.get());
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}
@@ -410,7 +425,7 @@ public class TestAI {
 	@Test
 	public void testRAG() throws Exception {
 		// Creating a embeddings resource set from search-documents-embeddings.json
-		Collection<EmbeddingsResourceContents> resources = new ArrayList<>(); 
+		Collection<EmbeddingsResourceContents> resourceContents = new ArrayList<>(); 
 		File input =  new File("test-data/search-documents-embeddings.json").getCanonicalFile();
 		try (InputStream in = new FileInputStream(input)) {
 			JSONObject jsonObject = new JSONObject(new JSONTokener(in));
@@ -419,7 +434,7 @@ public class TestAI {
 				JSONArray ea = data.getJSONArray("embeddings");
 				for (int i = 0; i < ea.length(); ++i) {
 					JSONObject embeddings = ea.getJSONObject(i);				
-					resources.add(new EmbeddingsResourceContents() {
+					resourceContents.add(new EmbeddingsResourceContents() {
 						
 						@Override
 						public String getVersion() {							
@@ -462,26 +477,36 @@ public class TestAI {
 						}
 						
 						@Override
-						public String getContent() {
+						public String getContents() {
 							return data.getString("content");
+						}
+
+						@Override
+						public String getMimeType() {
+							return "text/plain";
 						}
 					});
 				}
 			}
 		}
 				
-		EmbeddingsResource resourceSet = new EmbeddingsResource() {
+		EmbeddingsResource resource = new EmbeddingsResource() {
 			
 			@Override
-			public Flux<EmbeddingsResourceContents> getResources() {
-				return Flux.fromIterable(resources);
+			public Flux<EmbeddingsResourceContents> getContents() {
+				return Flux.fromIterable(resourceContents);
+			}
+
+			@Override
+			public String getMimeType() {
+				return "text/plain";
 			}
 			
 		};
 		
 		// Similarity search index				
 		HnswIndex<IndexId, float[], EmbeddingsItem, Float> hnswIndex = HnswIndex
-			.newBuilder(1536, DistanceFunctions.FLOAT_COSINE_DISTANCE, resources.size())
+			.newBuilder(1536, DistanceFunctions.FLOAT_COSINE_DISTANCE, resourceContents.size())
 			.withM(16)
 			.withEf(200)
 			.withEfConstruction(200)
@@ -489,7 +514,7 @@ public class TestAI {
 		
 		Map<String, String> contentMap = new HashMap<>();
 		
-		resourceSet.getResources().subscribe(er -> {
+		resource.getContents().subscribe(er -> {
 			List<List<Float>> vectors = er.getEmbeddings();
 			for (int i = 0; i < vectors.size(); ++i) {
 				List<Float> vector = vectors.get(i);
@@ -502,7 +527,7 @@ public class TestAI {
 						fVector, 
 						er.getDimensions()));				
 			}
-			contentMap.put(er.getUri(), er.getContent());
+			contentMap.put(er.getUri(), er.getContents());
 //			System.out.println(er.getUri() + " " + er.getEmbeddings().size() + " " + er.getContent().length());
 		});
 		
@@ -609,7 +634,7 @@ public class TestAI {
 		    	List<ResponseMessage> responses = chat.chat(messages);		    			    	
 		    	
 		    	for (ResponseMessage response: responses) {
-		    		System.out.println(response.getContent());
+		    		System.out.println(MarkdownHelper.INSTANCE.markdownToHtml(response.getContent()));
 		    	}				
 	        } finally {
 	        	span.end();
