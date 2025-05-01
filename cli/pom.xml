@@ -7,25 +7,26 @@
 	    <version>2025.4.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>tests</artifactId>
+	<artifactId>cli</artifactId>
 	<packaging>jar</packaging>
-	<name>Nasdanika AI Tests</name>
+	<name>Nasdanika AI CLI</name>
+	<url>https://docs.nasdanika.org/ai/cli/index.html</url>
 
 	<dependencies>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>openai</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>org.nasdanika.core</groupId>
+            <artifactId>cli</artifactId>
+            <version>${core.version}</version>
+        </dependency>	   
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ollama</artifactId>
+            <artifactId>core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.jelmerk</groupId>
             <artifactId>hnswlib-core-jdk17</artifactId>
             <version>1.2.1</version>
-        </dependency>		
-	</dependencies>
+        </dependency>
+ 	</dependencies>
 </project>

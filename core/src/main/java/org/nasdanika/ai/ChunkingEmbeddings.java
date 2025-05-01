@@ -15,12 +15,18 @@ public abstract class ChunkingEmbeddings<T> implements Embeddings {
 	private int chunkSize;
 	private int overlap;
 
+	/**
+	 * 
+	 * @param target
+	 * @param chunkSize Chunk size, if non-positive, then target max input tokens is used as chunk size
+	 * @param overlap
+	 */
 	protected ChunkingEmbeddings(
 			Embeddings target,
 			int chunkSize, 
 			int overlap) {
 		this.target = target;
-		this.chunkSize = chunkSize;
+		this.chunkSize = chunkSize > 0 ? chunkSize : target.getMaxInputTokens();
 		this.overlap = overlap;
 	}
 
