@@ -1,6 +1,7 @@
 package org.nasdanika.ai.openai;
 
 import java.lang.module.ModuleDescriptor.Version;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +22,8 @@ import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
@@ -30,8 +33,6 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Mono;
-import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.api.common.Attributes;
 
 /**
  * Base class for OpenAI embeddings. 
@@ -164,7 +165,6 @@ public class OpenAIEmbeddings implements Embeddings {
 
 	@Override
 	public Map<String, List<List<Float>>> generate(List<String> input) {
-		EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
         String spanName = "Embeddings " + provider + " " + model;
         if (!Util.isBlank(version)) {
         	spanName += " " + version;
@@ -175,17 +175,21 @@ public class OpenAIEmbeddings implements Embeddings {
 	        	.setAllAttributes(filterSpanInputAttributes(input))
 	        	.startSpan();
 	        
-	    try (Scope scope = span.makeCurrent()) {		
-			com.azure.ai.openai.models.Embeddings embeddings = openAIClient.getEmbeddings(model, embeddingOptions);
+	    try (Scope scope = span.makeCurrent()) {
 			Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
-			for (EmbeddingItem ei: embeddings.getData()) {
-				String prompt = input.get(ei.getPromptIndex());
-				ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
-			}
-			EmbeddingsUsage usage = embeddings.getUsage();
-			tokenCounter.add(usage.getPromptTokens());
-			span.setAttribute("tokens", usage.getPromptTokens());
-			span.setStatus(StatusCode.OK);
+	    	for (int i = 0; i < input.size(); i += batchSize) {
+	    		List<String> batch = input.subList(i, Math.min(i + batchSize, input.size()));
+				EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(batch);
+				com.azure.ai.openai.models.Embeddings embeddings = openAIClient.getEmbeddings(model, embeddingOptions);
+				for (EmbeddingItem ei: embeddings.getData()) {
+					String prompt = input.get(i + ei.getPromptIndex());
+					ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
+				}
+				EmbeddingsUsage usage = embeddings.getUsage();
+				tokenCounter.add(usage.getPromptTokens());
+				span.setAttribute("tokens", usage.getPromptTokens());
+				span.setStatus(StatusCode.OK);
+	    	}
 			return ret;
 	    } catch (RuntimeException e) {
 	    	span.setStatus(StatusCode.ERROR);
@@ -232,7 +236,6 @@ public class OpenAIEmbeddings implements Embeddings {
 		return Mono.deferContextual(contextView -> {
 			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 
-			EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(input);
 	        String spanName = "Embeddings " + provider + " " + model;
 	        if (!Util.isBlank(version)) {
 	        	spanName += " " + version;
@@ -243,37 +246,50 @@ public class OpenAIEmbeddings implements Embeddings {
 		        	.setParent(parentContext)
 		        	.setAllAttributes(filterSpanInputAttributes(input))
 		        	.startSpan();
-											
-			Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient
-					.getEmbeddings(model, embeddingOptions)
-	        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
 			
-			return 
-				result
-					.map(embeddings -> {
-				        try (Scope scope = span.makeCurrent()) {
-							Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
-							for (EmbeddingItem ei: embeddings.getData()) {
-								String prompt = input.get(ei.getPromptIndex());
-								ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
-							}
-							EmbeddingsUsage usage = embeddings.getUsage();
-							tokenCounter.add(usage.getPromptTokens());
-							span.setAttribute("tokens", usage.getPromptTokens());
-				        	span.setStatus(StatusCode.OK);
-							return ret;
-				        }
-					})
-					.onErrorMap(error -> {
-				        try (Scope scope = span.makeCurrent()) {
-				        	span.recordException(error);
-				        	span.setStatus(StatusCode.ERROR);
-							return error;
-				        }
-					})
-					.doFinally(signal -> {
-						span.end();
-					});			
+			List<Mono<Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>>> batchResults = new ArrayList<>();
+	    	for (int i = 0; i < input.size(); i += batchSize) {
+	    		List<String> batch = input.subList(i, Math.min(i + batchSize, input.size()));														
+				EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(batch);
+				final int offset = i;
+				Mono<Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>> batchResult = openAIAsyncClient
+						.getEmbeddings(model, embeddingOptions)
+						.map(e -> Map.entry(offset, e))
+		        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
+				batchResults.add(batchResult);
+	    	}
+	    	
+			Mono<Map<String, List<List<Float>>>> result = Mono.zip(batchResults, embeddingsArray -> {
+		        try (Scope scope = span.makeCurrent()) {
+					Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
+					int promptTokens = 0;
+					for (Object ae: (Object[]) embeddingsArray) {
+						@SuppressWarnings("unchecked")
+						Map.Entry<Integer,com.azure.ai.openai.models.Embeddings> embeddingsEntry = (Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>) ae;
+						for (EmbeddingItem ei: embeddingsEntry.getValue().getData()) {
+							String prompt = input.get(embeddingsEntry.getKey() + ei.getPromptIndex());
+							ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
+						}
+						EmbeddingsUsage usage = embeddingsEntry.getValue().getUsage();
+						promptTokens += usage.getPromptTokens();
+					}
+					tokenCounter.add(promptTokens);
+					span.setAttribute("tokens", promptTokens);
+		        	span.setStatus(StatusCode.OK);
+					return ret;
+		        }				
+			})
+			.onErrorMap(error -> {
+		        try (Scope scope = span.makeCurrent()) {
+		        	span.recordException(error);
+		        	span.setStatus(StatusCode.ERROR);
+					return error;
+		        }
+			})
+			.doFinally(signal -> {
+				span.end();
+			});
+			return result;
 		});
 		
 	}

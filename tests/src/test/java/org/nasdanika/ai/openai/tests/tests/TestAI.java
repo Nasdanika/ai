@@ -97,6 +97,53 @@ public class TestAI {
 			capabilityLoader.close(progressMonitor);
 		}
 	}
+		
+	@Test
+	public void testEmbeddingsBatch() throws Exception {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();				
+		try {
+			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+			assertNotNull(openTelemetry);			
+			
+			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
+			Iterable<CapabilityProvider<Embeddings>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
+			List<Embeddings> allEmbeddings = new ArrayList<>();
+			embeddingsProviders.forEach(ep -> allEmbeddings.addAll(ep.getPublisher().collect(Collectors.toList()).block()));
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Embeddings")
+	        	.startSpan();
+	        
+	        try (Scope scope = span.makeCurrent()) {
+				for (Embeddings embeddings: allEmbeddings) {				
+					assertNotNull(embeddings);
+					System.out.println("=== Embeddings ===");
+					System.out.println("Name:\t" + embeddings.getName());
+					System.out.println("Provider:\t" + embeddings.getProvider());
+					System.out.println("Max input:\t" + embeddings.getMaxInputTokens());
+					System.out.println("Dimensions:\t" + embeddings.getDimensions());
+										        
+			        List<String> input = new ArrayList<>();
+			        for (int i = 0; i < 77; ++i) {
+			        	input.add("Hello " + i);
+			        }
+					
+		        	for (Entry<String, List<List<Float>>> vectors: embeddings.generate(input).entrySet()) {		
+		        		System.out.println("\t" + vectors.getKey());
+		        		for (List<Float> vector: vectors.getValue()) {
+		        			System.out.println("\t\t" + vector.size());
+		        		}
+		        	}
+				}
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}
+	
 	
 	// -Dotel.java.global-autoconfigure.enabled=true -Dotel.service.name=test.embeddings.ollama
 	
@@ -177,6 +224,46 @@ public class TestAI {
 			capabilityLoader.close(progressMonitor);
 		}
 	}
+		
+	@Test
+	public void testOpenAIAsyncEmbeddingsBatch() throws InterruptedException {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		try {
+			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
+			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			assertNotNull(embeddings);
+			assertEquals("text-embedding-ada-002", embeddings.getName());
+			assertEquals("OpenAI", embeddings.getProvider());
+			assertEquals(1536, embeddings.getDimensions());
+			
+			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+			assertNotNull(openTelemetry);
+	
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Embeddings")
+	        	.startSpan();
+	        
+	        List<String> input = new ArrayList<>();
+	        for (int i = 0; i < 77; ++i) {
+	        	input.add("Hello " + i);
+	        }
+	        
+	    	Map<String, List<List<Float>>> vectors = embeddings
+	    		.generateAsync(input)
+	    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+	    		.doFinally(signal -> span.end())
+	    		.block();
+	
+			for (Entry<String, List<List<Float>>> vector: vectors.entrySet()) {
+				System.out.println(vector.getKey() + ": " +  vector.getValue().size());
+			}
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}
+	
 	
 	@Test
 	public void testOpenAIAsyncEmbeddingsPropagation() throws InterruptedException {

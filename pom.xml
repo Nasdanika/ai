@@ -197,6 +197,7 @@
 	
 	<modules>
 		<module>core</module>
+		<module>cli</module>
 		<module>openai</module>
 		<module>ollama</module>
 		<module>mcp</module>
