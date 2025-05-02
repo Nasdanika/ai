@@ -3,7 +3,9 @@ package org.nasdanika.ai.cli;
 import org.nasdanika.ai.Embeddings;
 import org.nasdanika.capability.ServiceCapabilityFactory;
 import org.nasdanika.capability.ServiceRequirementProvider;
+import org.nasdanika.common.Util;
 
+import io.opentelemetry.api.trace.Span;
 import picocli.CommandLine.Option;
 
 /**
@@ -37,6 +39,18 @@ public class EmbeddingsArgGroup implements ServiceRequirementProvider<Embeddings
 	@Override
 	public ServiceCapabilityFactory.Requirement<Embeddings.Requirement, Embeddings> getServiceRequirement() {
 		return ServiceCapabilityFactory.createRequirement(Embeddings.class, null, getEmbeddingsRequirement());				
+	}
+	
+	public void setSpanAttributes(Span span) {
+		if (!Util.isBlank(embeddingsProvider)) {
+			span.setAttribute("embedings.provider", embeddingsProvider);
+		}
+		if (!Util.isBlank(embeddingsModel)) {
+			span.setAttribute("embedings.model", embeddingsModel);
+		}
+		if (!Util.isBlank(embeddingsVersion)) {
+			span.setAttribute("embedings.version", embeddingsVersion);
+		}		
 	}
 
 }

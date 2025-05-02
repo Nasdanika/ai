@@ -176,6 +176,15 @@ public class OllamaEmbeddings implements Embeddings {
 		span.setAttribute("tokens", promptTokens);
 		return ret;
 	}
+	
+	/**
+	 * Override to modify what is set as span's input attribute - suppress (return null), truncate, anonymize
+	 * @param input
+	 * @return
+	 */
+	protected String filterSpanInputAttribute(String input) {
+		return input;
+	}
 
 	@Override
 	public Mono<List<List<Float>>> generateAsync(String input) {
@@ -185,8 +194,12 @@ public class OllamaEmbeddings implements Embeddings {
 			Span span = tracer.spanBuilder(spanName())
 					.setSpanKind(SpanKind.CLIENT)
 					.setParent(parentContext)
-					.setAttribute("input", input)
 					.startSpan();
+			
+			String spanInputAttributeValue = filterSpanInputAttribute(input);
+			if (!Util.isBlank(spanInputAttributeValue)) {
+				span.setAttribute("input", spanInputAttributeValue);
+			}
 				
 			try (Scope scope = span.makeCurrent()) {			
 				HttpClient client = HttpClient.create()

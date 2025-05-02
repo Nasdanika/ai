@@ -6,9 +6,10 @@ import org.nasdanika.ai.EncodingChunkingEmbeddings;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
 
+import io.opentelemetry.api.trace.Span;
 import picocli.CommandLine.Option;
 
-public abstract class EncodingChunkingEmbeddingsArgGroup extends ChunkingEmbeddingsArgGroup<IntArrayList> {
+public class EncodingChunkingEmbeddingsArgGroup extends ChunkingEmbeddingsArgGroup<IntArrayList> {
 
 	@Option( 
 			names = "--chunk-encoding-type",
@@ -22,6 +23,11 @@ public abstract class EncodingChunkingEmbeddingsArgGroup extends ChunkingEmbeddi
 	@Override
 	public EncodingChunkingEmbeddings createChunkingEmbeddings(Embeddings target) {
 		return new EncodingChunkingEmbeddings(target, chunkSize, chunksOverlap, encodingType);
+	}
+	
+	@Override
+	public void setSpanAttributes(Span span) {
+		span.setAttribute("chunk.encoding", encodingType.name());		
 	}
 
 }

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
@@ -404,7 +405,7 @@ public class TestAI {
 						
 						tasks.add(task);
 					}
-					Mono.zip(tasks, result -> result).block();
+					Mono.zip(tasks, Function.identity()).block();
 					File output =  new File("../../nasdanika.github.io/docs/search-documents-embeddings.json");
 					try (Writer writer = new FileWriter(output)) {
 						jsonObject.write(writer);

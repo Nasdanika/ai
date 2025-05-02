@@ -70,6 +70,7 @@ public class OpenAIAdaEmbeddingsCapabilityFactory extends ServiceCapabilityFacto
 				1536,
 				EncodingType.CL100K_BASE,
 				8191,
+				50,
 				openTelemetry);
 	}
 	

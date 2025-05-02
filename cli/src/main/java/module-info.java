@@ -7,6 +7,9 @@ module org.nasdanika.ai.cli {
 	requires transitive io.opentelemetry.context;
 	requires io.opentelemetry.api;
 	requires hnswlib.core;
+	requires hnswlib.utils;
+	requires hnswlib.core.jdk17;
+	requires jdk.incubator.vector;
 
 	opens org.nasdanika.ai.cli;	
 		

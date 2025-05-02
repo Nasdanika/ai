@@ -66,7 +66,21 @@ public class OpenAIEmbeddings implements Embeddings {
     Tracer tracer;
 	private LongCounter tokenCounter;
 	private String version;
+	private int batchSize;
 
+	/**
+	 * 
+	 * @param openAIClient
+	 * @param openAIAsyncClient
+	 * @param provider
+	 * @param model
+	 * @param version
+	 * @param dimensions
+	 * @param encodingType
+	 * @param maxInputTokens
+	 * @param batchSize Maximum number of input strings in a single request
+	 * @param openTelemetry
+	 */
 	public OpenAIEmbeddings(
 			OpenAIClient openAIClient, 
 			OpenAIAsyncClient openAIAsyncClient, 
@@ -76,6 +90,7 @@ public class OpenAIEmbeddings implements Embeddings {
 			int dimensions,
 			EncodingType encodingType,
 			int maxInputTokens,
+			int batchSize,
 			OpenTelemetry openTelemetry) {
 		
 		this.openAIClient = openAIClient;
@@ -102,6 +117,8 @@ public class OpenAIEmbeddings implements Embeddings {
 			.setDescription("Token usage")
 			.setUnit("token")
 			.build();
+		
+		this.batchSize = batchSize;
 	}
 
 	@Override
@@ -152,11 +169,10 @@ public class OpenAIEmbeddings implements Embeddings {
         if (!Util.isBlank(version)) {
         	spanName += " " + version;
         }
-        Attributes inputAttribute = Attributes.of(AttributeKey.stringArrayKey("input"), input);
 		Span span = tracer
 	        	.spanBuilder(spanName)
 	        	.setSpanKind(SpanKind.CLIENT)
-	        	.setAllAttributes(inputAttribute)
+	        	.setAllAttributes(filterSpanInputAttributes(input))
 	        	.startSpan();
 	        
 	    try (Scope scope = span.makeCurrent()) {		
@@ -188,6 +204,27 @@ public class OpenAIEmbeddings implements Embeddings {
 	@Override
 	public Mono<List<List<Float>>> generateAsync(String input) {
 		return generateAsync(Collections.singletonList(input)).map(result -> result.get(input));
+	}	
+	
+	/**
+	 * Override to modify what is set as span's input attribute - suppress (return null), truncate, anonymize
+	 * @param input
+	 * @return
+	 */
+	protected String filterSpanInputAttributeElement(String input) {
+		return input;
+	}
+
+	protected Attributes filterSpanInputAttributes(List<String> input) {
+		List<String> filteredInput = input.stream()
+			.map(this::filterSpanInputAttributeElement)
+			.filter(s -> !Util.isBlank(s))
+			.toList();
+		
+		if (filteredInput.isEmpty()) {
+			return Attributes.empty();
+		}
+        return Attributes.of(AttributeKey.stringArrayKey("input"), filteredInput);
 	}
 
 	@Override
@@ -200,12 +237,11 @@ public class OpenAIEmbeddings implements Embeddings {
 	        if (!Util.isBlank(version)) {
 	        	spanName += " " + version;
 	        }
-	        Attributes inputAttribute = Attributes.of(AttributeKey.stringArrayKey("input"), input);
 			Span span = tracer
 		        	.spanBuilder(spanName)
 		        	.setSpanKind(SpanKind.CLIENT)
 		        	.setParent(parentContext)
-		        	.setAllAttributes(inputAttribute)
+		        	.setAllAttributes(filterSpanInputAttributes(input))
 		        	.startSpan();
 											
 			Mono<com.azure.ai.openai.models.Embeddings> result = openAIAsyncClient
