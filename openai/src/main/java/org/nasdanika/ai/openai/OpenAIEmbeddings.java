@@ -248,48 +248,52 @@ public class OpenAIEmbeddings implements Embeddings {
 		        	.startSpan();
 			
 			List<Mono<Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>>> batchResults = new ArrayList<>();
-	    	for (int i = 0; i < input.size(); i += batchSize) {
-	    		List<String> batch = input.subList(i, Math.min(i + batchSize, input.size()));														
-				EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(batch);
-				final int offset = i;
-				Mono<Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>> batchResult = openAIAsyncClient
-						.getEmbeddings(model, embeddingOptions)
-						.map(e -> Map.entry(offset, e))
-		        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
-				batchResults.add(batchResult);
-	    	}
-	    	
-			Mono<Map<String, List<List<Float>>>> result = Mono.zip(batchResults, embeddingsArray -> {
-		        try (Scope scope = span.makeCurrent()) {
-					Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
-					int promptTokens = 0;
-					for (Object ae: (Object[]) embeddingsArray) {
-						@SuppressWarnings("unchecked")
-						Map.Entry<Integer,com.azure.ai.openai.models.Embeddings> embeddingsEntry = (Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>) ae;
-						for (EmbeddingItem ei: embeddingsEntry.getValue().getData()) {
-							String prompt = input.get(embeddingsEntry.getKey() + ei.getPromptIndex());
-							ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
+	        try (Scope scope = span.makeCurrent()) {
+		    	for (int i = 0; i < input.size(); i += batchSize) {
+		    		List<String> batch = input.subList(i, Math.min(i + batchSize, input.size()));														
+					EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(batch);
+					final int offset = i;
+					Mono<Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>> batchResult = openAIAsyncClient
+							.getEmbeddings(model, embeddingOptions)
+							.map(e -> Map.entry(offset, e))
+			        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
+					batchResults.add(batchResult);
+		    	}
+		    	
+				Mono<Map<String, List<List<Float>>>> result = Mono.zip(batchResults, embeddingsArray -> {
+			        try (Scope zipScope = span.makeCurrent()) {
+						Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
+						int promptTokens = 0;
+						for (Object ae: (Object[]) embeddingsArray) {
+							@SuppressWarnings("unchecked")
+							Map.Entry<Integer,com.azure.ai.openai.models.Embeddings> embeddingsEntry = (Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>) ae;
+							for (EmbeddingItem ei: embeddingsEntry.getValue().getData()) {
+								String prompt = input.get(embeddingsEntry.getKey() + ei.getPromptIndex());
+								ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
+							}
+							EmbeddingsUsage usage = embeddingsEntry.getValue().getUsage();
+							promptTokens += usage.getPromptTokens();
 						}
-						EmbeddingsUsage usage = embeddingsEntry.getValue().getUsage();
-						promptTokens += usage.getPromptTokens();
-					}
-					tokenCounter.add(promptTokens);
-					span.setAttribute("tokens", promptTokens);
-		        	span.setStatus(StatusCode.OK);
-					return ret;
-		        }				
-			})
-			.onErrorMap(error -> {
-		        try (Scope scope = span.makeCurrent()) {
-		        	span.recordException(error);
-		        	span.setStatus(StatusCode.ERROR);
-					return error;
-		        }
-			})
-			.doFinally(signal -> {
-				span.end();
-			});
-			return result;
+						tokenCounter.add(promptTokens);
+						span.setAttribute("tokens", promptTokens);
+			        	span.setStatus(StatusCode.OK);
+						return ret;
+			        }				
+				})
+				.onErrorMap(error -> {
+			        try (Scope errorScope = span.makeCurrent()) {
+			        	span.recordException(error);
+			        	span.setStatus(StatusCode.ERROR);
+						return error;
+			        }
+				})
+				.doFinally(signal -> {
+					span.end();
+				})
+				.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)));
+				
+				return result;
+	        }
 		});
 		
 	}

@@ -21,8 +21,9 @@ import com.github.jelmerk.hnswlib.core.hnsw.HnswIndex;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
+import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
-import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Parameters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -93,6 +94,10 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 			vectorIndexArgGroup.setSpanAttributes(commandSpan);
 			
 			Embeddings embeddings = embeddingsArgGroup.loadOne(getCapabilityLoader(), progressMonitor);
+			if (embeddings == null) {
+				throw new CommandLine.ExecutionException(spec.commandLine(), "Embedding model is not available");
+			}
+			
 			EncodingChunkingEmbeddings chunkingEmbeddings = encodingChunkingEmbeddingsArgGroup.createChunkingEmbeddings(embeddings);
 	
 			Function<Map.Entry<String,String>, Flux<EmbeddingsItem>> mapper = entry -> {
@@ -114,9 +119,10 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 				}).flatMapIterable(Function.identity());
 			};
 			
-			List<EmbeddingsItem> items = getItems(commandSpan)
+			List<EmbeddingsItem> items = getItems(commandSpan, progressMonitor)
 				.flatMap(mapper)
 				.collect(Collectors.toList())
+				.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(commandSpan)))
 				.block();
 			
 			commandSpan.addEvent(
@@ -138,6 +144,6 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 	 * @param commandSpan
 	 * @return
 	 */
-	protected abstract Flux<Map.Entry<String,String>> getItems(Span commandSpan);
+	protected abstract Flux<Map.Entry<String,String>> getItems(Span commandSpan, ProgressMonitor progressMonitor);
 
 }

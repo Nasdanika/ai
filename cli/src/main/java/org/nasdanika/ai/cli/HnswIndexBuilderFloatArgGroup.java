@@ -48,7 +48,7 @@ public class HnswIndexBuilderFloatArgGroup extends HnswIndexBuilderArgGroup<floa
 			description = {
 					"Vector distance function",
 					"Valid values: ${COMPLETION-CANDIDATES}",
-					"Default value: ${DEFAULT-VALUE}"
+					"Default value: COSINE"
 			})	
 	protected Distance distanceFunction = Distance.COSINE;	
 	
