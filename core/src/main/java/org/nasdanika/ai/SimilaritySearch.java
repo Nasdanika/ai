@@ -1,10 +1,14 @@
 package org.nasdanika.ai;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+
+import com.github.jelmerk.hnswlib.core.Index;
+import com.github.jelmerk.hnswlib.core.Item;
 
 import reactor.core.publisher.Mono;
 
@@ -56,7 +60,9 @@ public interface SimilaritySearch<T,D extends Comparable<D>> {
 	 * @param embeddings
 	 * @return
 	 */
-	static <D extends Comparable<D>> SimilaritySearch<String,D> embeddingsSearch(SimilaritySearch<List<List<Float>>,D> multiVectorSearch, Embeddings embeddings) {
+	static <D extends Comparable<D>> SimilaritySearch<String,D> embeddingsSearch(
+			SimilaritySearch<List<List<Float>>,D> multiVectorSearch, 
+			Embeddings embeddings) {
 		return multiVectorSearch.adapt(
 				embeddings::generate, 
 				embeddings::generateAsync);
@@ -87,8 +93,8 @@ public interface SimilaritySearch<T,D extends Comparable<D>> {
 				}
 				return Mono.zip(results, ra -> {
 					List<SearchResult<D>> ret = new ArrayList<>();
-					for (List<Float> qe: (List<Float>[]) ra) {
-						ret.addAll(vectorSearch.find(qe, numberOfItems));
+					for (Object qe: (Object[]) ra) {
+						ret.addAll((List<SearchResult<D>>) qe);
 					}
 					Collections.sort(ret);
 					return ret.size() > numberOfItems ? ret.subList(0, numberOfItems) : ret;
@@ -97,6 +103,70 @@ public interface SimilaritySearch<T,D extends Comparable<D>> {
 			
 		}; 
 	}
+		
+	/**
+	 * Index id - item URI and embedding vector index for URIs with multiple vectors/chunks.
+	 */
+	record IndexId(String uri, int index) implements Serializable {}
 	
-
+	/**
+	 * Vector index item
+	 */
+	record EmbeddingsItem(IndexId id, float[] vector, int dimensions) implements Item<IndexId,float[]> {}
+	
+	static SimilaritySearch<List<Float>, Float> from(Index<IndexId, float[], EmbeddingsItem, Float> index) {
+		return from(index, Function.identity());
+	}
+	
+	static SimilaritySearch<List<Float>, Float> from(
+			Index<IndexId, float[], EmbeddingsItem, Float> index,
+			Function<float[], float[]> normalizer) {
+		
+		return new SimilaritySearch<List<Float>, Float>() {
+					
+			@Override
+			public Mono<List<SearchResult<Float>>> findAsync(List<Float> query, int numberOfItems) {
+				return Mono.just(find(query, numberOfItems));
+			}
+			
+			@Override
+			public List<SearchResult<Float>> find(List<Float> query, int numberOfItems) {
+				float[] fVector = new float[query.size()];
+				for (int j = 0; j < fVector.length; ++j) {
+					fVector[j] = query.get(j);
+				}
+				if (normalizer != null) {
+					fVector = normalizer.apply(fVector);
+				}
+				List<SearchResult<Float>> ret = new ArrayList<>();
+				for (com.github.jelmerk.hnswlib.core.SearchResult<EmbeddingsItem, Float> nearest: index.findNearest(fVector, numberOfItems)) {
+					String uri = nearest.item().id().uri();
+					int index = nearest.item().id().index();
+					Float distance = nearest.distance();
+					
+					ret.add(new SearchResult<Float>() {
+						
+						@Override
+						public String getUri() {
+							return uri;
+						}
+						
+						@Override
+						public int getIndex() {
+							return index;
+						}
+						
+						@Override
+						public Float getDistance() {
+							return distance;
+						}
+						
+					});
+				}
+				return ret;
+			}
+			
+		};		
+	}
+			
 }

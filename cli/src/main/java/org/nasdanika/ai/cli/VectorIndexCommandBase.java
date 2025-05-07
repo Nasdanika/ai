@@ -1,7 +1,8 @@
 package org.nasdanika.ai.cli;
 
 import java.io.File;
-import java.io.Serializable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -10,12 +11,13 @@ import java.util.stream.Collectors;
 
 import org.nasdanika.ai.Embeddings;
 import org.nasdanika.ai.EncodingChunkingEmbeddings;
+import org.nasdanika.ai.SimilaritySearch.EmbeddingsItem;
+import org.nasdanika.ai.SimilaritySearch.IndexId;
 import org.nasdanika.capability.CapabilityLoader;
 import org.nasdanika.cli.ProgressMonitorMixIn;
 import org.nasdanika.cli.TelemetryCommand;
 import org.nasdanika.common.ProgressMonitor;
 
-import com.github.jelmerk.hnswlib.core.Item;
 import com.github.jelmerk.hnswlib.core.hnsw.HnswIndex;
 
 import io.opentelemetry.api.OpenTelemetry;
@@ -32,17 +34,6 @@ import reactor.core.publisher.Mono;
  * Base command for creating vector index files by generating embeddings.
  */
 public abstract class VectorIndexCommandBase extends TelemetryCommand {
-	
-	/**
-	 * Index id - item URI and embedding vector index for URIs with multiple vectors/chunks.
-	 */
-	public record IndexId(String uri, int index) implements Serializable {}
-	
-	/**
-	 * Vector index item
-	 */
-	public record EmbeddingsItem(IndexId id, float[] vector, int dimensions) implements Item<IndexId,float[]> {}	
-	
 
 	public VectorIndexCommandBase(OpenTelemetry openTelemetry, CapabilityLoader capabilityLoader) {
 		super(openTelemetry, capabilityLoader);
@@ -145,5 +136,13 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 	 * @return
 	 */
 	protected abstract Flux<Map.Entry<String,String>> getItems(Span commandSpan, ProgressMonitor progressMonitor);
+	
+	public static HnswIndex<IndexId, float[], EmbeddingsItem, Float> loadIndex(File file) throws IOException {
+		return HnswIndex.load(file);
+	}
+	
+	public static HnswIndex<IndexId, float[], EmbeddingsItem, Float> loadIndex(InputStream in) throws IOException {
+		return HnswIndex.load(in);
+	}
 
 }

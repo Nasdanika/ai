@@ -507,9 +507,6 @@ public class TestAI {
 		}
 	}
 	
-	record IndexId(String uri, int index) implements Serializable {}
-	record EmbeddingsItem(IndexId id, float[] vector, int dimensions) implements Item<IndexId,float[]> {}	
-	
 	@Test
 	public void testRAG() throws Exception {
 		// Creating a embeddings resource set from search-documents-embeddings.json
@@ -593,7 +590,7 @@ public class TestAI {
 		};
 		
 		// Similarity search index				
-		HnswIndex<IndexId, float[], EmbeddingsItem, Float> hnswIndex = HnswIndex
+		HnswIndex<SimilaritySearch.IndexId, float[], SimilaritySearch.EmbeddingsItem, Float> hnswIndex = HnswIndex
 			.newBuilder(1536, DistanceFunctions.FLOAT_COSINE_DISTANCE, resourceContents.size())
 			.withM(16)
 			.withEf(200)
@@ -610,8 +607,8 @@ public class TestAI {
 				for (int j = 0; j < fVector.length; ++j) {
 					fVector[j] = vector.get(j);
 				}
-				hnswIndex.add(new EmbeddingsItem(
-						new IndexId(er.getUri(), i), 
+				hnswIndex.add(new SimilaritySearch.EmbeddingsItem(
+						new SimilaritySearch.IndexId(er.getUri(), i), 
 						fVector, 
 						er.getDimensions()));				
 			}
@@ -621,45 +618,7 @@ public class TestAI {
 		
 		hnswIndex.save(new File("test-data/hnsw-index.bin"));
 		
-		SimilaritySearch<List<Float>, Float> vectorSearch = new SimilaritySearch<List<Float>, Float>() {
-			
-			@Override
-			public Mono<List<SearchResult<Float>>> findAsync(List<Float> query, int numberOfItems) {
-				return Mono.just(find(query, numberOfItems));
-			}
-			
-			@Override
-			public List<SearchResult<Float>> find(List<Float> query, int numberOfItems) {
-				float[] fVector = new float[query.size()];
-				for (int j = 0; j < fVector.length; ++j) {
-					fVector[j] = query.get(j);
-				}
-				List<SearchResult<Float>> ret = new ArrayList<>();
-				for (com.github.jelmerk.hnswlib.core.SearchResult<EmbeddingsItem, Float> nearest: hnswIndex.findNearest(fVector, numberOfItems)) {
-					ret.add(new SearchResult<Float>() {
-						
-						@Override
-						public String getUri() {
-							return nearest.item().id().uri();
-						}
-						
-						@Override
-						public int getIndex() {
-							return nearest.item().id().index();
-						}
-						
-						@Override
-						public Float getDistance() {
-							return nearest.distance();
-						}
-						
-					});
-				}
-				return ret;
-			}
-			
-		};		
-		
+		SimilaritySearch<List<Float>, Float> vectorSearch = SimilaritySearch.from(hnswIndex);				
 		SimilaritySearch<List<List<Float>>, Float> multiVectorSearch = SimilaritySearch.adapt(vectorSearch);	
 		
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
