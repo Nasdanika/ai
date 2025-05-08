@@ -33,9 +33,9 @@ import reactor.core.publisher.Mono;
 /**
  * Base command for creating vector index files by generating embeddings.
  */
-public abstract class VectorIndexCommandBase extends TelemetryCommand {
+public abstract class HnswIndexCommandBase extends TelemetryCommand {
 
-	public VectorIndexCommandBase(OpenTelemetry openTelemetry, CapabilityLoader capabilityLoader) {
+	public HnswIndexCommandBase(OpenTelemetry openTelemetry, CapabilityLoader capabilityLoader) {
 		super(openTelemetry, capabilityLoader);
 	}
 		
@@ -63,7 +63,7 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 	@ArgGroup(
 			heading = "Vector index%n",
 			exclusive = false)
-	private HnswIndexBuilderFloatArgGroup vectorIndexArgGroup;	
+	private HnswIndexBuilderFloatArgGroup hnswIndexArgGroup;	
 		
 	@Override
 	public Integer execute(Span commandSpan) throws Exception {
@@ -79,10 +79,10 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 				embeddingsArgGroup = new EmbeddingsArgGroup();
 			}
 			embeddingsArgGroup.setSpanAttributes(commandSpan);
-			if (vectorIndexArgGroup == null) {
-				vectorIndexArgGroup = new HnswIndexBuilderFloatArgGroup();
+			if (hnswIndexArgGroup == null) {
+				hnswIndexArgGroup = new HnswIndexBuilderFloatArgGroup();
 			}
-			vectorIndexArgGroup.setSpanAttributes(commandSpan);
+			hnswIndexArgGroup.setSpanAttributes(commandSpan);
 			
 			Embeddings embeddings = embeddingsArgGroup.loadOne(getCapabilityLoader(), progressMonitor);
 			if (embeddings == null) {
@@ -103,7 +103,7 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 						}
 						result.add(new EmbeddingsItem(
 								new IndexId(entry.getKey(), idx++), 
-								vectorIndexArgGroup.normalize(fVector), 
+								hnswIndexArgGroup.normalize(fVector), 
 								vector.size()));						
 					}
 					return result;
@@ -123,7 +123,7 @@ public abstract class VectorIndexCommandBase extends TelemetryCommand {
 						.put("size", items.size())
 						.build());
 	
-			HnswIndex<IndexId, float[], EmbeddingsItem, Float> index = vectorIndexArgGroup.buildAndAddAll(embeddings.getDimensions(), items, commandSpan);
+			HnswIndex<IndexId, float[], EmbeddingsItem, Float> index = hnswIndexArgGroup.buildAndAddAll(embeddings.getDimensions(), items, commandSpan);
 			index.save(output);		
 			
 			return 0;
