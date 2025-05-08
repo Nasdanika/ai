@@ -109,7 +109,7 @@ public abstract class HnswIndexBuilderArgGroup<TVector, TDistance extends Compar
 	private int progressUpdateInterval = Index.DEFAULT_PROGRESS_UPDATE_INTERVAL;	
 	
 	public HnswIndex.Builder<TVector, TDistance> createIndexBuilder(int dimensions, int maxItemCount) {
-		Builder<TVector, TDistance> builder = HnswIndex.newBuilder(1536, getDistanceFunction(), maxItemCount)
+		Builder<TVector, TDistance> builder = HnswIndex.newBuilder(dimensions, getDistanceFunction(), maxItemCount)
 		.withM(m)
 		.withEf(ef)
 		.withEfConstruction(efConstruction);
