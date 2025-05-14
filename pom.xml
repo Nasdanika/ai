@@ -203,6 +203,7 @@
 		<module>mcp</module>
 		<module>mcp-sse</module>
 		<module>mcp-help</module>
+		<module>emf</module>
 	</modules>	
 
 	<distributionManagement>
