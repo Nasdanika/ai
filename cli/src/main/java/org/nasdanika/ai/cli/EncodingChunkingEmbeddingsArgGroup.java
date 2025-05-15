@@ -16,7 +16,7 @@ public class EncodingChunkingEmbeddingsArgGroup extends ChunkingEmbeddingsArgGro
 			description = {
 					"Chunk encoding type",
 					"Valid values: ${COMPLETION-CANDIDATES}",
-					"Default value: ${DEFAULT-VALUE}"
+					"Default value: CL100K_BASE"
 			})	
 	protected EncodingType encodingType = EncodingType.CL100K_BASE;	
 	
