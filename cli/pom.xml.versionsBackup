@@ -4,29 +4,24 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.5.0</version>
+	    <version>2025.4.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>openai</artifactId>
+	<artifactId>cli</artifactId>
 	<packaging>jar</packaging>
-	<name>Nasdanika AI OpenAI</name>
-	<url>https://docs.nasdanika.org/ai/openai/index.html</url>
+	<name>Nasdanika AI CLI</name>
+	<url>https://docs.nasdanika.org/ai/cli/index.html</url>
 
 	<dependencies>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>core</artifactId>
-			<version>${project.version}</version>
-		</dependency>
         <dependency>
             <groupId>org.nasdanika.core</groupId>
-            <artifactId>telemetry</artifactId>
+            <artifactId>cli</artifactId>
             <version>${core.version}</version>
+        </dependency>	   
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.version}</version>
         </dependency>
-		<dependency>
-		    <groupId>com.azure</groupId>
-		    <artifactId>azure-ai-openai</artifactId>
-		    <version>1.0.0-beta.16</version>
-		</dependency>
-	</dependencies>
+ 	</dependencies>
 </project>

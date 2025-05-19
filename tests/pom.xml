@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.4.0</version>
+	    <version>2025.5.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>tests</artifactId>
@@ -22,10 +22,5 @@
             <artifactId>ollama</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.github.jelmerk</groupId>
-            <artifactId>hnswlib-core-jdk17</artifactId>
-            <version>1.2.1</version>
-        </dependency>		
 	</dependencies>
 </project>

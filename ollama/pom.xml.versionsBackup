@@ -4,13 +4,13 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.5.0</version>
+	    <version>2025.4.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>openai</artifactId>
+	<artifactId>ollama</artifactId>
 	<packaging>jar</packaging>
-	<name>Nasdanika AI OpenAI</name>
-	<url>https://docs.nasdanika.org/ai/openai/index.html</url>
+	<name>Nasdanika AI Ollama</name>
+	<url>https://docs.nasdanika.org/ai/ollama/index.html</url>
 
 	<dependencies>
 		<dependency>
@@ -20,13 +20,13 @@
 		</dependency>
         <dependency>
             <groupId>org.nasdanika.core</groupId>
-            <artifactId>telemetry</artifactId>
+            <artifactId>http</artifactId>
             <version>${core.version}</version>
         </dependency>
-		<dependency>
-		    <groupId>com.azure</groupId>
-		    <artifactId>azure-ai-openai</artifactId>
-		    <version>1.0.0-beta.16</version>
-		</dependency>
+        <dependency>
+            <groupId>com.knuddels</groupId>
+            <artifactId>jtokkit</artifactId>
+            <version>1.1.0</version>
+        </dependency>       
 	</dependencies>
 </project>
