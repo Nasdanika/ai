@@ -1,5 +1,6 @@
 package org.nasdanika.ai.openai;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
@@ -69,7 +70,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<HttpClient>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<HttpClient> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::httpClient);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::httpClient);
 			}
 				
 			return builder;
@@ -90,7 +91,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<HttpLogOptions>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<HttpLogOptions> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::httpLogOptions);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::httpLogOptions);
 			}
 				
 			return builder;
@@ -111,7 +112,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<HttpPipeline>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<HttpPipeline> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::pipeline);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::pipeline);
 			}
 				
 			return builder;
@@ -132,7 +133,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<RetryOptions>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<RetryOptions> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::retryOptions);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::retryOptions);
 			}
 				
 			return builder;
@@ -153,7 +154,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<RetryPolicy>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<RetryPolicy> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::retryPolicy);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::retryPolicy);
 			}
 				
 			return builder;
@@ -174,7 +175,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<OpenAIServiceVersion>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<OpenAIServiceVersion> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::serviceVersion);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::serviceVersion);
 			}
 				
 			return builder;
@@ -195,7 +196,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<HttpPipelinePolicy>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<HttpPipelinePolicy> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::addPolicy);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::addPolicy);
 			}
 				
 			return builder;
@@ -216,7 +217,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<ClientOptions>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<ClientOptions> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::clientOptions);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::clientOptions);
 			}
 				
 			return builder;
@@ -237,7 +238,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<Configuration>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<Configuration> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::configuration);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::configuration);
 			}
 				
 			return builder;
@@ -258,7 +259,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<KeyCredential>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<KeyCredential> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::credential);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::credential);
 			}
 				
 			return builder;
@@ -279,7 +280,7 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		CompletionStage<Iterable<CapabilityProvider<TokenCredential>>> cs = loader.load(requirement, progressMonitor);
 		return cs.thenCombine(builderCS, (capabilityProviders, builder) -> {
 			for (CapabilityProvider<TokenCredential> capabilityProvider: capabilityProviders) {
-				capabilityProvider.getPublisher().subscribe(builder::credential);
+				capabilityProvider.getPublisher().filter(Objects::nonNull).collectList().block().forEach(builder::credential);
 			}
 				
 			return builder;
