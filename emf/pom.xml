@@ -21,7 +21,7 @@
 		</dependency>
         <dependency>
             <groupId>org.nasdanika.core</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>graph</artifactId>
             <version>${core.version}</version>
         </dependency>
 	</dependencies>
