@@ -13,6 +13,7 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,7 +30,9 @@ import org.nasdanika.graph.emf.EObjectGraphFactory;
 import org.nasdanika.graph.emf.EObjectNode;
 import org.nasdanika.graph.emf.EReferenceConnection;
 import org.nasdanika.graph.emf.EReferenceConnectionQualifier;
+import org.nasdanika.graph.processor.ConnectionProcessorConfig;
 import org.nasdanika.graph.processor.HandlerType;
+import org.nasdanika.graph.processor.NodeProcessorConfig;
 import org.nasdanika.graph.processor.ProcessorConfig;
 import org.nasdanika.graph.processor.ProcessorConfigFactory;
 import org.nasdanika.graph.processor.ProcessorInfo;
@@ -40,13 +43,30 @@ import org.nasdanika.graph.processor.function.MessageProcessorFactory;
  * Can be used to compute similarity.
  * @param <V> Message value type
  */
-public class EObjectGraphMessageProcessor<V> {
+public class EObjectGraphMessageProcessor<V,NS,CS> {
 	
 	public record Message<V>(
 		Element sender,
-		boolean reverse,
+		Element recipient,
 		V value, 
-		Message<V> parent) { }
+		Message<V> parent) {
+		
+		public int depth() {
+			return parent == null ? 0 : parent.depth() + 1;
+		}
+		
+		public Message<V> root() {
+			return parent == null ? this : parent.root();
+		}
+				
+		/**
+		 * @return The first message from the root with non-null sender
+		 */
+		public Message<V> rootSender() {
+			return parent == null || parent.sender() == null ? this : parent.rootSender();
+		}		
+		
+	}
 	
 	protected Map<EObject, EObjectNode> registry;
 	
@@ -106,6 +126,7 @@ public class EObjectGraphMessageProcessor<V> {
 	}
 	
 	protected Message<V> createSourceMessage(
+			CS state,
 			Connection sender, 
 			Message<V> parent, 
 			CompletionStage<Void> result,
@@ -119,16 +140,17 @@ public class EObjectGraphMessageProcessor<V> {
 		}
 		
 		for (Message<V> ancestor = parent; ancestor != null; ancestor = ancestor.parent()) {
-			if (ancestor.sender() == sender && ancestor.reverse()) {
+			if (ancestor.sender() == sender && ancestor.recipient() == sender.getSource()) {
 				return null; // No double-traversing
 			}
 		}
 		
-		V value = getSourceMessageValue(sender, parent, progressMonitor);
-		return value == null ? null : new Message<>(sender, true, value, parent);
+		V value = getSourceMessageValue(state, sender, parent, progressMonitor);
+		return value == null ? null : new Message<>(sender, sender.getSource(), value, parent);
 	}
 	
 	protected V getSourceMessageValue(
+			CS state,
 			Connection sender, 
 			Message<V> parent, 
 			ProgressMonitor progressMonitor) {
@@ -137,22 +159,24 @@ public class EObjectGraphMessageProcessor<V> {
 	}
 
 	protected Message<V> createTargetMessage(
+			CS state,
 			Connection sender, 
 			Message<V> parent, 
 			CompletionStage<Void> result,
 			ProgressMonitor progressMonitor) {
 				
 		for (Message<V> ancestor = parent; ancestor != null; ancestor = ancestor.parent()) {
-			if (ancestor.sender() == sender && !ancestor.reverse()) {
+			if (ancestor.sender() == sender && ancestor.recipient() == sender.getTarget()) {
 				return null; // No double-traversing
 			}
 		}
 		
-		V value = getSourceMessageValue(sender, parent, progressMonitor);
-		return value == null ? null : new Message<>(sender, false, value, parent);
+		V value = getTargetMessageValue(state, sender, parent, progressMonitor);
+		return value == null ? null : new Message<>(sender, sender.getTarget(), value, parent);
 	}
 	
 	protected V getTargetMessageValue(
+			CS state,
 			Connection sender, 
 			Message<V> parent, 
 			ProgressMonitor progressMonitor) {
@@ -161,6 +185,7 @@ public class EObjectGraphMessageProcessor<V> {
 	}
 
 	protected Message<V> createConnectionMessage(
+			NS state,
 			Connection activator, 
 			boolean incomingActivator, 
 			Node sender,
@@ -170,7 +195,18 @@ public class EObjectGraphMessageProcessor<V> {
 			CompletionStage<Void> result,
 			ProgressMonitor progressMonitor) {
 		
+		for (Message<V> ancestor = parent; ancestor != null; ancestor = ancestor.parent()) {
+			if (ancestor.sender() == sender) {
+				return null; // No double-traversing
+			}
+		}	
+		
+		if (activator == recipient && incomingActivator == incomingRecipient) {
+			return null; // No sending right back
+		}
+		
 		V value = getConnectionMessageValue(
+				state,
 				activator, 
 				incomingActivator, 
 				sender, 
@@ -178,11 +214,12 @@ public class EObjectGraphMessageProcessor<V> {
 				incomingRecipient, 
 				parent, 
 				progressMonitor);
-		return value == null ? null : new Message<>(sender, incomingRecipient, value, parent);
+		return value == null ? null : new Message<>(sender, recipient, value, parent);
 		
 	}
 	
 	protected V getConnectionMessageValue(
+			NS state,
 			Connection activator, 
 			boolean incomingActivator, 
 			Node sender,
@@ -192,6 +229,27 @@ public class EObjectGraphMessageProcessor<V> {
 			ProgressMonitor progressMonitor) {
 		
 			return parent.value(); // Passing the value AS-IS		
+	}	
+	
+	protected NS createNodeProcessorState(
+			NodeProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> nodeProcessorConfig,
+			boolean parallel,
+			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+			Consumer<CompletionStage<?>> endpointWiringStageConsumer,
+			Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> incomingEndpoints,
+			Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> outgoingEndpoints,
+			ProgressMonitor progressMonitor) {
+		
+		return null;
+	}
+	
+	protected CS createConnectionProcessorState(
+			ConnectionProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> connectionProcessorConfig,
+			boolean parallel,
+			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+			Consumer<CompletionStage<?>> endpointWiringStageConsumer, ProgressMonitor progressMonitor) {
+		
+		return null;
 	}	
 		
 	/**
@@ -235,24 +293,26 @@ public class EObjectGraphMessageProcessor<V> {
 		Transformer<Element,ProcessorConfig> processorConfigTransformer = new Transformer<>(processorConfigFactory);
 		Map<Element, ProcessorConfig> configs = processorConfigTransformer.transform(registry.values(), parallel, progressMonitor);
 		
-		MessageProcessorFactory<Message<V>,Void,Message<V>,Void> processorFactory = new MessageProcessorFactory<>() {
+		MessageProcessorFactory<Message<V>,Void,Message<V>,Void,NS,CS> processorFactory = new MessageProcessorFactory<>() {
 
 			@Override
 			protected Message<V> createSourceMessage(
+					CS state,
 					Connection sender, 
 					Message<V> parent, 
 					CompletionStage<Void> result,
 					ProgressMonitor progressMonitor) {
-				return EObjectGraphMessageProcessor.this.createSourceMessage(sender, parent, result, progressMonitor);
+				return EObjectGraphMessageProcessor.this.createSourceMessage(state, sender, parent, result, progressMonitor);
 			}
 
 			@Override
 			protected Message<V> createTargetMessage(
+					CS state,
 					Connection sender, 
 					Message<V> parent, 
 					CompletionStage<Void> result,
 					ProgressMonitor progressMonitor) {
-				return EObjectGraphMessageProcessor.this.createTargetMessage(sender, parent, result, progressMonitor);
+				return EObjectGraphMessageProcessor.this.createTargetMessage(state, sender, parent, result, progressMonitor);
 			}
 
 			@Override
@@ -266,7 +326,43 @@ public class EObjectGraphMessageProcessor<V> {
 			}
 
 			@Override
+			protected NS createNodeProcessorState(
+					NodeProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> nodeProcessorConfig,
+					boolean parallel,
+					BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+					Consumer<CompletionStage<?>> endpointWiringStageConsumer,
+					Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> incomingEndpoints,
+					Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> outgoingEndpoints,
+					ProgressMonitor progressMonitor) {
+							
+				return EObjectGraphMessageProcessor.this.createNodeProcessorState(
+						nodeProcessorConfig, 
+						parallel, 
+						infoProvider, 
+						endpointWiringStageConsumer,
+						incomingEndpoints, 
+						outgoingEndpoints, 
+						progressMonitor);
+			}
+
+			@Override
+			protected CS createConnectionProcessorState(
+					ConnectionProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> connectionProcessorConfig,
+					boolean parallel,
+					BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+					Consumer<CompletionStage<?>> endpointWiringStageConsumer, ProgressMonitor progressMonitor) {
+
+				return EObjectGraphMessageProcessor.this.createConnectionProcessorState(
+						connectionProcessorConfig, 
+						parallel, 
+						infoProvider,
+						endpointWiringStageConsumer, 
+						progressMonitor);
+			}
+
+			@Override
 			protected Message<V> createConnectionMessage(
+					NS state,
 					Connection activator, 
 					boolean incomingActivator, 
 					Node sender,
@@ -277,6 +373,7 @@ public class EObjectGraphMessageProcessor<V> {
 					ProgressMonitor progressMonitor) {
 				
 				return EObjectGraphMessageProcessor.this.createConnectionMessage(
+						state,
 						activator, 
 						incomingActivator, 
 						sender, 
@@ -330,8 +427,9 @@ public class EObjectGraphMessageProcessor<V> {
 			mh.apply(
 				new Message<V>(
 					null,
-					false,
-					rootMessageValue, null), 
+					null,
+					rootMessageValue, 
+					null), 
 				progressMonitor);
 		});						
 		
