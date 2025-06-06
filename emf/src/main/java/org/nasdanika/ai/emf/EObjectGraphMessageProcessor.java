@@ -108,7 +108,7 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	 * @param message
 	 * @return
 	 */
-	protected boolean test(Message<V> message) {
+	protected boolean test(Message<V> message, ProgressMonitor progressMonitor) {
 		return true;
 	}
 	
@@ -255,14 +255,18 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	/**
 	 * 
 	 * @param parallel
+	 * @param rootMessageValue
+	 * @param selector
+	 * @param messageFilter Can modify the message - return null to stop further processing, create a message with a different value. Can be null.
 	 * @param executor
+	 * @param collector
 	 * @param progressMonitor
-	 * @return Map of the source (root) node to a map of recipient nodes to similarity values
 	 */
 	public void process(
 			boolean parallel, 
 			V rootMessageValue,
-			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,			
+			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,	
+			BiFunction<Message<V>, ProgressMonitor, Message<V>> messageFilter,
 			Consumer<Runnable> executor,
 			Collector<V> collector,
 			ProgressMonitor progressMonitor) {		
@@ -281,8 +285,9 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 					HandlerType type) {
 				
 				return (m, p) -> {
-					if (test(m)) {
-						executor.accept(() -> handler.apply(m, p));
+					Message<V> msg = messageFilter == null ? m : messageFilter.apply(m, progressMonitor);
+					if (test(msg,p)) {
+						executor.accept(() -> handler.apply(msg, p));
 					}
 					return null;
 				};
@@ -437,12 +442,16 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	
 	/**
 	 * Processes messages in the calling thread. 
+	 * @param rootMessageValue
+	 * @param selector
+	 * @param messageFilter Can modify the message - return null to stop further processing, create a message with a different value. Can be null.
+	 * @param collector
 	 * @param progressMonitor
-	 * @return
 	 */
 	public void processes(
 			V rootMessageValue,
 			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,			
+			BiFunction<Message<V>, ProgressMonitor, Message<V>> messageFilter,
 			Collector<V> collector, 
 			ProgressMonitor progressMonitor) {		
 		
@@ -451,6 +460,7 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 				false,
 				rootMessageValue,
 				selector,
+				messageFilter,
 				workItems::push, 
 				collector, 
 				progressMonitor);
@@ -462,12 +472,18 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 		
 	/**
 	 * Processes messages in multiple threads. 
+	 * @param rootMessageValue
+	 * @param selector
+	 * @param messageFilter Can modify the message - return null to stop further processing, create a message with a different value. Can be null.
+	 * @param collector
+	 * @param parallel
+	 * @param threads
 	 * @param progressMonitor
-	 * @return
 	 */
 	public void process(
 			V rootMessageValue,
 			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,			
+			BiFunction<Message<V>, ProgressMonitor, Message<V>> messageFilter,
 			Collector<V> collector,
 			boolean parallel,
 			int threads,			
@@ -513,6 +529,7 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 				false,
 				rootMessageValue,
 				selector,
+				messageFilter,
 				executorService::submit, 
 				collector, 
 				progressMonitor);
