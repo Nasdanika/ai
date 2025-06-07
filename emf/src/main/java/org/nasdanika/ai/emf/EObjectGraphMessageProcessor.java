@@ -201,10 +201,6 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 			}
 		}	
 		
-		if (activator == recipient && incomingActivator == incomingRecipient) {
-			return null; // No sending right back
-		}
-		
 		V value = getConnectionMessageValue(
 				state,
 				activator, 
