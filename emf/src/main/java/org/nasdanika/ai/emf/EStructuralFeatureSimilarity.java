@@ -1,13 +1,16 @@
 package org.nasdanika.ai.emf;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 /**
- * Value (e.g. integer or float) similarity.  
- * @param <T>
+ * Similarity with an aggregated value (can be null) and per-feature values.
+ * @param <V>
  */
-public interface EStructuralFeatureSimilarity<F extends EStructuralFeature, T extends EStructuralFeatureSimilarity<F,?>> extends Similarity<T> {
-	
-	F getEStructuralFeature();
+public interface EStructuralFeatureSimilarity<V> extends Supplier<V> {
 
+	Map<EStructuralFeature,V> getFeatureSimilarities();
+	
 }
