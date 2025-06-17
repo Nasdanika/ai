@@ -1,14 +1,14 @@
-package org.nasdanika.ai.emf;
+package org.nasdanika.ai.emf.similarity;
 
 import org.nasdanika.graph.emf.EObjectNode;
 
-public class FloatSimilarityConnection extends SimilarityConnection<Float> {
+public class DoubleSimilarityConnection extends SimilarityConnection<Double> {
 
-	public FloatSimilarityConnection(
+	public DoubleSimilarityConnection(
 			EObjectNode source, 
 			EObjectNode target, 
 			boolean visitTargetNode, 
-			Float value) {
+			Double value) {
 		
 		super(source, target, visitTargetNode, value);
 	}	

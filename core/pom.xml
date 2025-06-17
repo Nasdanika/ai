@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.5.0</version>
+	    <version>2025.6.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>core</artifactId>
@@ -16,7 +16,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.7.4</version>
+            <version>3.7.6</version>
         </dependency>
         <dependency>
             <groupId>com.knuddels</groupId>

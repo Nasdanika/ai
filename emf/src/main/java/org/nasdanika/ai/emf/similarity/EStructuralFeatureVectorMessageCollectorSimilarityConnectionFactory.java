@@ -1,10 +1,11 @@
-package org.nasdanika.ai.emf;
+package org.nasdanika.ai.emf.similarity;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
+import org.nasdanika.ai.emf.EObjectGraphMessageProcessor;
 import org.nasdanika.ai.emf.EObjectGraphMessageProcessor.Message;
 import org.nasdanika.graph.emf.EObjectNode;
 import org.nasdanika.graph.emf.EReferenceConnection;

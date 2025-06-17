@@ -1,4 +1,4 @@
-package org.nasdanika.ai.emf;
+package org.nasdanika.ai.emf.similarity;
 
 import java.util.List;
 import java.util.Map;
@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.eclipse.emf.ecore.EStructuralFeature;
+import org.nasdanika.ai.emf.DoubleEStructuralFeatureConnection;
 import org.nasdanika.graph.emf.EObjectNode;
 
 public class DoubleEStructuralFeatureVectorSimilarityConnectionFactory 

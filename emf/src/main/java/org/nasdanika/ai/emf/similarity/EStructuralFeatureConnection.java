@@ -1,4 +1,4 @@
-package org.nasdanika.ai.emf;
+package org.nasdanika.ai.emf.similarity;
 
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.nasdanika.graph.emf.EObjectNode;

@@ -481,7 +481,7 @@ public class HttpServerRoutesTransportProvider implements McpServerTransportProv
 	}	
 	
 	@Override
-	public Mono<Void> notifyClients(String method, Map<String, Object> params) {
+	public Mono<Void> notifyClients(String method, Object params) {
 		// TODO - telemetry span
 		if (sessions.isEmpty()) {
 			logger.debug("No active sessions to broadcast message to");

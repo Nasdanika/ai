@@ -1,4 +1,4 @@
-package org.nasdanika.ai.emf;
+package org.nasdanika.ai.emf.similarity;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.nasdanika.ai.emf.EObjectGraphMessageProcessor;
 import org.nasdanika.ai.emf.EObjectGraphMessageProcessor.Collector;
 import org.nasdanika.ai.emf.EObjectGraphMessageProcessor.Message;
 import org.nasdanika.common.ProgressMonitor;

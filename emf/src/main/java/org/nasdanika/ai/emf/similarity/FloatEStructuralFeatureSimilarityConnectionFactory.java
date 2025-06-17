@@ -1,4 +1,4 @@
-package org.nasdanika.ai.emf;
+package org.nasdanika.ai.emf.similarity;
 
 import java.util.List;
 import java.util.Objects;

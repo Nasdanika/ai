@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.5.0</version>
+	    <version>2025.6.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>mcp-sse</artifactId>
@@ -32,7 +32,7 @@
         <dependency>
             <groupId>io.modelcontextprotocol.sdk</groupId>
             <artifactId>mcp</artifactId>
-            <version>0.8.1</version>
+            <version>0.10.0</version>
         </dependency>
  	</dependencies>
 </project>

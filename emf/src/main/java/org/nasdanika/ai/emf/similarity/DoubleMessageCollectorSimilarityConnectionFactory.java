@@ -1,5 +1,6 @@
-package org.nasdanika.ai.emf;
+package org.nasdanika.ai.emf.similarity;
 
+import org.nasdanika.ai.emf.EObjectGraphMessageProcessor;
 import org.nasdanika.ai.emf.EObjectGraphMessageProcessor.Message;
 import org.nasdanika.graph.emf.EObjectNode;
 

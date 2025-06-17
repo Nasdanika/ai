@@ -8,6 +8,8 @@ import java.util.function.Consumer;
 import org.nasdanika.capability.CapabilityProvider;
 import org.nasdanika.capability.ServiceCapabilityFactory;
 import org.nasdanika.common.ProgressMonitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.ai.openai.OpenAIServiceVersion;
@@ -26,6 +28,8 @@ import com.azure.core.util.Configuration;
  * Creates and configures {@link OpenAIClientBuilder}
  */
 public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFactory<Object, OpenAIClientBuilder> {
+	
+	private static Logger LOGGER = LoggerFactory.getLogger(OpenAIClientBuilderCapabilityFactory.class);
 
 	@Override
 	public boolean isFor(Class<?> type, Object requirement) {
@@ -53,6 +57,10 @@ public class OpenAIClientBuilderCapabilityFactory extends ServiceCapabilityFacto
 		builderCS = setRetryOptions(builderCS, loader, endpoint, progressMonitor);
 		builderCS = setRetryPolicy(builderCS, loader, endpoint, progressMonitor);
 		builderCS = setServiceVersion(builderCS, loader, endpoint, progressMonitor);
+		builderCS = builderCS.thenApply(builder -> {			
+			LOGGER.info("Created " + OpenAIClientBuilder.class + " service");
+			return builder;
+		});
 		return wrapCompletionStage(builderCS);
 	}
 	
