@@ -106,6 +106,7 @@ public abstract class HnswIndexCommandBase extends TelemetryCommand {
 								hnswIndexArgGroup.normalize(fVector), 
 								vector.size()));						
 					}
+					onGenerateEmbeddings(entry.getKey(), entry.getValue(), vectors, result);
 					return result;
 				}).flatMapIterable(Function.identity());
 			};
@@ -130,6 +131,17 @@ public abstract class HnswIndexCommandBase extends TelemetryCommand {
 		}
 	}
 	
+	/**
+	 * Listener method for the generation process.
+	 * You may override this method for progress reporting. 
+	 * @param key
+	 * @param value
+	 * @param embeddingsItems
+	 */
+	protected void onGenerateEmbeddings(String key, String value, List<List<Float>> vectors, List<EmbeddingsItem> embeddingsItems) {
+		
+	}
+		
 	/**
 	 * A {@link Flux} of items which are mapped to {@link EmbeddingsItem} and then stored to the index. 
 	 * @param commandSpan
