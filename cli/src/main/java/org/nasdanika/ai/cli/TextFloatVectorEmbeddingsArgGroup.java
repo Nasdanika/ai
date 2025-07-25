@@ -1,6 +1,6 @@
 package org.nasdanika.ai.cli;
 
-import org.nasdanika.ai.Embeddings;
+import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
 import org.nasdanika.capability.ServiceCapabilityFactory;
 import org.nasdanika.capability.ServiceRequirementProvider;
 import org.nasdanika.common.Util;
@@ -12,33 +12,33 @@ import picocli.CommandLine.Option;
  * This arguments group is used to 
  * create a requirement for embeddings.
  */
-public class EmbeddingsArgGroup implements ServiceRequirementProvider<Embeddings.Requirement, Embeddings> {
+public class TextFloatVectorEmbeddingsArgGroup implements ServiceRequirementProvider<TextFloatVectorEmbeddingModel.Requirement, TextFloatVectorEmbeddingModel> {
 	
 	@Option( 
 			names = "--embeddings-provider",
-			description = "Embeddings provider")
+			description = "TextFloatVectorEmbeddingModel provider")
 	private String embeddingsProvider;
 	
 	@Option( 
 			names = "--embeddings-model",
-			description = "Embeddings model")
+			description = "TextFloatVectorEmbeddingModel model")
 	private String embeddingsModel;
 	
 	@Option( 
 			names = "--embeddings-version",
-			description = "Embeddings version")
+			description = "TextFloatVectorEmbeddingModel version")
 	private String embeddingsVersion;
 	
 	/**
 	 * @return An instance of requirement
 	 */
-	public Embeddings.Requirement getEmbeddingsRequirement() {
-		return new Embeddings.Requirement(embeddingsProvider, embeddingsModel, embeddingsVersion);
+	public TextFloatVectorEmbeddingModel.Requirement getEmbeddingsRequirement() {
+		return TextFloatVectorEmbeddingModel.createRequirement(embeddingsProvider, embeddingsModel, embeddingsVersion);
 	}
 	
 	@Override
-	public ServiceCapabilityFactory.Requirement<Embeddings.Requirement, Embeddings> getServiceRequirement() {
-		return ServiceCapabilityFactory.createRequirement(Embeddings.class, null, getEmbeddingsRequirement());				
+	public ServiceCapabilityFactory.Requirement<TextFloatVectorEmbeddingModel.Requirement, TextFloatVectorEmbeddingModel> getServiceRequirement() {
+		return ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class, null, getEmbeddingsRequirement());				
 	}
 	
 	public void setSpanAttributes(Span span) {

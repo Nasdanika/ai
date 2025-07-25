@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * A pre-computed embeddings
  */
-public interface EmbeddingsResourceContents extends Coordinates {
+public interface TextFloatVectorEmbeddingResourceContents extends Coordinates {
 	
 	String getUri();
 	

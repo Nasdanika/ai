@@ -1,7 +1,7 @@
 package org.nasdanika.ai.cli;
 
-import org.nasdanika.ai.Embeddings;
-import org.nasdanika.ai.EncodingChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
+import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddings;
 
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
@@ -9,7 +9,7 @@ import com.knuddels.jtokkit.api.IntArrayList;
 import io.opentelemetry.api.trace.Span;
 import picocli.CommandLine.Option;
 
-public class EncodingChunkingEmbeddingsArgGroup extends ChunkingEmbeddingsArgGroup<IntArrayList> {
+public class TextFloatVectorEncodingChunkingEmbeddingsArgGroup extends TextFloatVectorChunkingEmbeddingsArgGroup<IntArrayList> {
 
 	@Option( 
 			names = "--chunk-encoding-type",
@@ -21,8 +21,8 @@ public class EncodingChunkingEmbeddingsArgGroup extends ChunkingEmbeddingsArgGro
 	protected EncodingType encodingType = EncodingType.CL100K_BASE;	
 	
 	@Override
-	public EncodingChunkingEmbeddings createChunkingEmbeddings(Embeddings target) {
-		return new EncodingChunkingEmbeddings(target, chunkSize, chunksOverlap, encodingType);
+	public TextFloatVectorEncodingChunkingEmbeddings createChunkingEmbeddings(TextFloatVectorEmbeddingModel target) {
+		return new TextFloatVectorEncodingChunkingEmbeddings(target, chunkSize, chunksOverlap, encodingType);
 	}
 	
 	@Override

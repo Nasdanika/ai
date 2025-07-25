@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.nasdanika.ai.Embeddings;
+import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
 import org.nasdanika.common.Util;
 
 import com.azure.ai.openai.OpenAIAsyncClient;
@@ -37,9 +37,9 @@ import reactor.core.publisher.Mono;
 /**
  * Base class for OpenAI embeddings. 
  */
-public class OpenAIEmbeddings implements Embeddings {
+public class TextFloatVectorOpenAIEmbeddings implements TextFloatVectorEmbeddingModel {
 
-//    private static Logger logger = LoggerFactory.getLogger(OpenAIEmbeddings.class);
+//    private static Logger logger = LoggerFactory.getLogger(TextFloatVectorOpenAIEmbeddings.class);
 	
 	protected OpenAIClient openAIClient;
 	protected OpenAIAsyncClient openAIAsyncClient;
@@ -82,7 +82,7 @@ public class OpenAIEmbeddings implements Embeddings {
 	 * @param batchSize Maximum number of input strings in a single request
 	 * @param openTelemetry
 	 */
-	public OpenAIEmbeddings(
+	public TextFloatVectorOpenAIEmbeddings(
 			OpenAIClient openAIClient, 
 			OpenAIAsyncClient openAIAsyncClient, 
 			String provider,
@@ -165,7 +165,7 @@ public class OpenAIEmbeddings implements Embeddings {
 
 	@Override
 	public Map<String, List<List<Float>>> generate(List<String> input) {
-        String spanName = "Embeddings " + provider + " " + model;
+        String spanName = "TextFloatVectorEmbeddingModel " + provider + " " + model;
         if (!Util.isBlank(version)) {
         	spanName += " " + version;
         }
@@ -236,7 +236,7 @@ public class OpenAIEmbeddings implements Embeddings {
 		return Mono.deferContextual(contextView -> {
 			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 
-	        String spanName = "Embeddings " + provider + " " + model;
+	        String spanName = "TextFloatVectorEmbeddingModel " + provider + " " + model;
 	        if (!Util.isBlank(version)) {
 	        	spanName += " " + version;
 	        }

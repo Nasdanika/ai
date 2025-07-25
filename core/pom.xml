@@ -25,9 +25,16 @@
         </dependency>       
         <dependency>
             <groupId>com.github.jelmerk</groupId>
+            <artifactId>hnswlib-core</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <!--
+        <dependency>
+            <groupId>com.github.jelmerk</groupId>
             <artifactId>hnswlib-core-jdk17</artifactId>
             <version>1.2.1</version>
         </dependency>
+        -->
         <dependency>
             <groupId>com.github.jelmerk</groupId>
             <artifactId>hnswlib-utils</artifactId>

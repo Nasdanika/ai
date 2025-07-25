@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.nasdanika.ai.Embeddings;
-import org.nasdanika.ai.EncodingChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
+import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddings;
 import org.nasdanika.ai.SimilaritySearch.EmbeddingsItem;
 import org.nasdanika.ai.SimilaritySearch.IndexId;
 import org.nasdanika.capability.CapabilityLoader;
@@ -53,12 +53,12 @@ public abstract class HnswIndexCommandBase extends TelemetryCommand {
 	@ArgGroup(
 			heading = "Chunking%n",
 			exclusive = false)
-	private EncodingChunkingEmbeddingsArgGroup encodingChunkingEmbeddingsArgGroup;
+	private TextFloatVectorEncodingChunkingEmbeddingsArgGroup encodingChunkingEmbeddingsArgGroup;
 	
 	@ArgGroup(
-			heading = "Embeddings%n",
+			heading = "TextFloatVectorEmbeddingModel%n",
 			exclusive = false)
-	private EmbeddingsArgGroup embeddingsArgGroup;
+	private TextFloatVectorEmbeddingsArgGroup embeddingsArgGroup;
 		
 	@ArgGroup(
 			heading = "Vector index%n",
@@ -72,11 +72,11 @@ public abstract class HnswIndexCommandBase extends TelemetryCommand {
 		}
 		try (ProgressMonitor progressMonitor = progressMonitorMixIn.createProgressMonitor(1)) {
 			if (encodingChunkingEmbeddingsArgGroup == null) {
-				encodingChunkingEmbeddingsArgGroup = new EncodingChunkingEmbeddingsArgGroup();
+				encodingChunkingEmbeddingsArgGroup = new TextFloatVectorEncodingChunkingEmbeddingsArgGroup();
 			}
 			encodingChunkingEmbeddingsArgGroup.setSpanAttributes(commandSpan);
 			if (embeddingsArgGroup == null) {
-				embeddingsArgGroup = new EmbeddingsArgGroup();
+				embeddingsArgGroup = new TextFloatVectorEmbeddingsArgGroup();
 			}
 			embeddingsArgGroup.setSpanAttributes(commandSpan);
 			if (hnswIndexArgGroup == null) {
@@ -84,12 +84,12 @@ public abstract class HnswIndexCommandBase extends TelemetryCommand {
 			}
 			hnswIndexArgGroup.setSpanAttributes(commandSpan);
 			
-			Embeddings embeddings = embeddingsArgGroup.loadOne(getCapabilityLoader(), progressMonitor);
+			TextFloatVectorEmbeddingModel embeddings = embeddingsArgGroup.loadOne(getCapabilityLoader(), progressMonitor);
 			if (embeddings == null) {
 				throw new CommandLine.ExecutionException(spec.commandLine(), "Embedding model is not available");
 			}
 			
-			EncodingChunkingEmbeddings chunkingEmbeddings = encodingChunkingEmbeddingsArgGroup.createChunkingEmbeddings(embeddings);
+			TextFloatVectorEncodingChunkingEmbeddings chunkingEmbeddings = encodingChunkingEmbeddingsArgGroup.createChunkingEmbeddings(embeddings);
 	
 			Function<Map.Entry<String,String>, Flux<EmbeddingsItem>> mapper = entry -> {
 				Mono<List<List<Float>>> vectorsMono = chunkingEmbeddings.generateAsync(entry.getValue());

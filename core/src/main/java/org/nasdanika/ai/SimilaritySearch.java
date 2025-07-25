@@ -60,9 +60,9 @@ public interface SimilaritySearch<T,D extends Comparable<D>> {
 	 * @param embeddings
 	 * @return
 	 */
-	static <D extends Comparable<D>> SimilaritySearch<String,D> embeddingsSearch(
+	static <D extends Comparable<D>> SimilaritySearch<String,D> textFloatVectorEmbeddingSearch(
 			SimilaritySearch<List<List<Float>>,D> multiVectorSearch, 
-			Embeddings embeddings) {
+			TextFloatVectorEmbeddingModel embeddings) {
 		return multiVectorSearch.adapt(
 				embeddings::generate, 
 				embeddings::generateAsync);

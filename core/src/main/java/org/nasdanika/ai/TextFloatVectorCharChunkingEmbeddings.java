@@ -6,9 +6,9 @@ import java.util.Arrays;
  * A simple implementation which treats a character as a token.
  * Can be used for testing and when an encoder is unknown or not available.  
  */
-public class CharChunkingEmbeddings extends ChunkingEmbeddings<char[]> {
+public class TextFloatVectorCharChunkingEmbeddings extends TextFloatVectorChunkingEmbeddings<char[]> {
 
-	public CharChunkingEmbeddings(Embeddings target, int chunkSize, int overlap) {
+	public TextFloatVectorCharChunkingEmbeddings(TextFloatVectorEmbeddingModel target, int chunkSize, int overlap) {
 		super(target, chunkSize, overlap);
 	}
 

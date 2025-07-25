@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.nasdanika.ai.Embeddings;
+import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
 import org.nasdanika.common.NasdanikaException;
 import org.nasdanika.common.Util;
 //import org.slf4j.Logger;
@@ -35,9 +35,9 @@ import reactor.netty.http.client.HttpClient;
 /**
  * Base class for OpenAI embeddings. 
  */
-public class OllamaEmbeddings implements Embeddings {
+public class TextFloatVectorOllamaEmbeddings implements TextFloatVectorEmbeddingModel {
 
-//    private static Logger logger = LoggerFactory.getLogger(OllamaEmbeddings.class);
+//    private static Logger logger = LoggerFactory.getLogger(TextFloatVectorOllamaEmbeddings.class);
 	
 	private static final String ERROR_KEY = "error";
 
@@ -68,7 +68,7 @@ public class OllamaEmbeddings implements Embeddings {
 	private String version;
 	private TextMapPropagator propagator;
 
-	public OllamaEmbeddings(
+	public TextFloatVectorOllamaEmbeddings(
 			String endpoint, 
 			String provider,
 			String model,
@@ -141,7 +141,7 @@ public class OllamaEmbeddings implements Embeddings {
 	}
 	
 	protected String spanName() {
-		String spanName = "Embeddings " + provider + " " + model + " " + endpoint;
+		String spanName = "TextFloatVectorEmbeddingModel " + provider + " " + model + " " + endpoint;
         if (!Util.isBlank(version)) {
         	spanName += " " + version;
         }

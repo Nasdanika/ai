@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.nasdanika.ai.CharChunkingEmbeddings;
-import org.nasdanika.ai.ChunkingEmbeddings;
-import org.nasdanika.ai.Embeddings;
-import org.nasdanika.ai.EncodingChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorCharChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
+import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddings;
 
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono;
 
 public class TestChunking {
 	
-	Embeddings fakeEmbeddings = new Embeddings() {
+	TextFloatVectorEmbeddingModel fakeEmbeddings = new TextFloatVectorEmbeddingModel() {
 
 		@Override
 		public String getProvider() {
@@ -64,7 +64,7 @@ public class TestChunking {
 	
 	@Test
 	public void testCharChunking() {
-		CharChunkingEmbeddings cce = new CharChunkingEmbeddings(fakeEmbeddings, 5, 2);		
+		TextFloatVectorCharChunkingEmbeddings cce = new TextFloatVectorCharChunkingEmbeddings(fakeEmbeddings, 5, 2);		
 		List<List<Float>> vectors = cce.generate("1234567890");
 		
 		for (List<Float> vector: vectors) {
@@ -77,7 +77,7 @@ public class TestChunking {
 	public void testEncodingChunking() {
 		EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
 		Encoding enc = registry.getEncoding(EncodingType.CL100K_BASE);
-		ChunkingEmbeddings<?> ece = new EncodingChunkingEmbeddings(fakeEmbeddings, 5, 1, enc);		
+		TextFloatVectorChunkingEmbeddings<?> ece = new TextFloatVectorEncodingChunkingEmbeddings(fakeEmbeddings, 5, 1, enc);		
 		String input = "A quick brown fox jumps over a sleepy dog";
 		ece.chunk(input).forEach(System.out::println);		
 		

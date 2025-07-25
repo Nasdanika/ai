@@ -9,9 +9,9 @@ import reactor.core.publisher.Mono;
  * 
  * @param <T> a container of tokens, e.g. int[] or char[] or List&lt;Integer&gt;
  */
-public abstract class ChunkingEmbeddings<T> implements Embeddings {
+public abstract class TextFloatVectorChunkingEmbeddings<T> implements TextFloatVectorEmbeddingModel {
 	
-	private Embeddings target;
+	private TextFloatVectorEmbeddingModel target;
 	private int chunkSize;
 	private int overlap;
 
@@ -21,8 +21,8 @@ public abstract class ChunkingEmbeddings<T> implements Embeddings {
 	 * @param chunkSize Chunk size, if non-positive, then target max input tokens is used as chunk size
 	 * @param overlap
 	 */
-	protected ChunkingEmbeddings(
-			Embeddings target,
+	protected TextFloatVectorChunkingEmbeddings(
+			TextFloatVectorEmbeddingModel target,
 			int chunkSize, 
 			int overlap) {
 		this.target = target;
