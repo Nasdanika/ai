@@ -33,7 +33,9 @@ public class OllamaChat implements Chat {
 	
 	private static final String ERROR_KEY = "error";
 	private static final String CONTENT_KEY = "content";
+	private static final String IMAGES_KEY = "images";
 	private static final String ROLE_KEY = "role";
+	private static final String BASE_64 = ";base64,";
 	private String provider;
 	private String model;
 	
@@ -135,7 +137,20 @@ public class OllamaChat implements Chat {
 			JSONObject jMessage = new JSONObject();
 			jMessages.put(jMessage);
 			jMessage.put(ROLE_KEY, message.getRole());
-			jMessage.put(CONTENT_KEY, message.getContent());
+			if (!Util.isBlank(message.getContent())) {
+				jMessage.put(CONTENT_KEY, message.getContent());
+			}
+			if (!message.getImages().isEmpty()) {
+				JSONArray jImages = new JSONArray();
+				jMessage.put(IMAGES_KEY, jImages);
+				for (String img: message.getImages()) {
+					int base64Idx = img.indexOf(BASE_64);
+					if (base64Idx != -1) {
+						img = img.substring(base64Idx + BASE_64.length());
+					}
+					jImages.put(img);
+				}
+			}
 		}						
 		return ret;
 	}

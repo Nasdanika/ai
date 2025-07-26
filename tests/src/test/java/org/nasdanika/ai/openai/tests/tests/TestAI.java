@@ -363,14 +363,45 @@ public class TestAI {
 	}
 	
 	@Test
-	public void testDescribeImage() {
+	public void testOpenAIDescribeImage() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 	
 		List<Chat> chats = new ArrayList<>();		
 		try {
-			Requirement<Chat.Requirement, Chat> requirement = ServiceCapabilityFactory.createRequirement(Chat.class);			
+			Chat.Requirement cReq = new Chat.Requirement("OpenAI", "gpt-4o", null);
+			Requirement<Chat.Requirement, Chat> requirement = ServiceCapabilityFactory.createRequirement(Chat.class, null, cReq);			
+			for (CapabilityProvider<Chat> chatProvider: capabilityLoader.<Chat>load(requirement, progressMonitor)) {
+				chatProvider.getPublisher().subscribe(chats::add);
+			}
+			
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Chat")
+	        	.startSpan();
+	        try (Scope scope = span.makeCurrent()) {			
+				for (Chat chat: chats) {
+					describeImage(chat, openTelemetry);				
+				}
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}	
+	
+	@Test
+	public void testOllamaDescribeImage() {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+	
+		List<Chat> chats = new ArrayList<>();		
+		try {
+			Chat.Requirement cReq = new Chat.Requirement("Ollama", "llava", null);
+			Requirement<Chat.Requirement, Chat> requirement = ServiceCapabilityFactory.createRequirement(Chat.class, null, cReq);			
 			for (CapabilityProvider<Chat> chatProvider: capabilityLoader.<Chat>load(requirement, progressMonitor)) {
 				chatProvider.getPublisher().subscribe(chats::add);
 			}
@@ -400,7 +431,7 @@ public class TestAI {
 		System.out.println("Max output:\t" + chat.getMaxOutputTokens());
         
     	List<ResponseMessage> responses = chat.chat(
-    		Chat.Role.user.createMessage("Describe this image").addImage(getClass().getResourceAsStream("llama.png"))
+    		Chat.Role.user.createMessage("Describe this image").addImage(new File("llama.png"))
     	);
     	
     	for (ResponseMessage response: responses) {
