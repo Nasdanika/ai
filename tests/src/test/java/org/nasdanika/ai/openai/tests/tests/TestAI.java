@@ -22,9 +22,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.jupiter.api.Test;
+import org.nasdanika.ai.CachingImageNarrator;
 import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.Chat.ResponseMessage;
+import org.nasdanika.ai.ChatImageNarrator;
 import org.nasdanika.ai.EmbeddingGenerator;
+import org.nasdanika.ai.ImageNarrator;
 import org.nasdanika.ai.SearchResult;
 import org.nasdanika.ai.SimilaritySearch;
 import org.nasdanika.ai.TextFloatVectorChunkingEmbeddingModel;
@@ -393,6 +396,69 @@ public class TestAI {
 	}	
 	
 	@Test
+	public void testOpenAINarrateImage() {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+	
+		List<Chat> chats = new ArrayList<>();		
+		try {
+			Chat.Requirement cReq = new Chat.Requirement("OpenAI", "gpt-4o", null);
+			Requirement<Chat.Requirement, Chat> requirement = ServiceCapabilityFactory.createRequirement(Chat.class, null, cReq);			
+			for (CapabilityProvider<Chat> chatProvider: capabilityLoader.<Chat>load(requirement, progressMonitor)) {
+				chatProvider.getPublisher().subscribe(chats::add);
+			}
+			
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Chat")
+	        	.startSpan();
+	        try (Scope scope = span.makeCurrent()) {			
+				for (Chat chat: chats) {
+					narrateImage(chat, openTelemetry);				
+				}
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}
+		
+	@Test
+	public void testOpenAICachedNarrateImage() {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+	
+		List<Chat> chats = new ArrayList<>();		
+		try {
+			Chat.Requirement cReq = new Chat.Requirement("OpenAI", "gpt-4o", null);
+			Requirement<Chat.Requirement, Chat> requirement = ServiceCapabilityFactory.createRequirement(Chat.class, null, cReq);			
+			for (CapabilityProvider<Chat> chatProvider: capabilityLoader.<Chat>load(requirement, progressMonitor)) {
+				chatProvider.getPublisher().subscribe(chats::add);
+			}
+			
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Chat")
+	        	.startSpan();
+	        try (Scope scope = span.makeCurrent()) {			
+				for (Chat chat: chats) {
+					Map<String,String> cache = new HashMap<>();
+					narrateImage(chat, openTelemetry, cache);				
+					narrateImage(chat, openTelemetry, cache);
+					System.out.println(cache);
+				}
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}		
+	
+	@Test
 	public void testOllamaDescribeImage() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
@@ -438,6 +504,28 @@ public class TestAI {
     		System.out.println(response.getContent());
     	}
 	}
+		
+	private void narrateImage(Chat chat, OpenTelemetry openTelemetry) {
+		System.out.println("=== Narrate image ===");
+		assertNotNull(chat);
+		System.out.println("Name:\t" + chat.getName());
+		System.out.println("Provider:\t" + chat.getProvider());
+		System.out.println("Max input:\t" + chat.getMaxInputTokens());
+		System.out.println("Max output:\t" + chat.getMaxOutputTokens());
+        
+		ChatImageNarrator chatImageNarrator = new ChatImageNarrator(chat);
+		String narration = chatImageNarrator.asFileEmbeddingGenerator().generate(new File("llama.png"));
+		System.out.println(narration);
+	}
+		
+	private void narrateImage(Chat chat, OpenTelemetry openTelemetry, Map<String, String> cache) {
+		System.out.println("=== Narrate image with cache ===");	    
+		ChatImageNarrator chatImageNarrator = new ChatImageNarrator(chat);
+		ImageNarrator cachingImageNarrator = new CachingImageNarrator(chatImageNarrator, cache);
+		String narration = cachingImageNarrator.asFileEmbeddingGenerator().generate(new File("llama.png"));
+		System.out.println(narration);
+	}	
+	
 	
 	@Test
 	public void testOllamaChat() {

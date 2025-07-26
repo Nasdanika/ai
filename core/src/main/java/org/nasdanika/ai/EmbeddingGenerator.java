@@ -30,7 +30,7 @@ public interface EmbeddingGenerator<S,E> {
 		return generateAsync(input).block();
 	}
 	
-	Mono<E> generateAsync(S source);
+	Mono<E> generateAsync(S input);
 	
 	/**
 	 * Batch generation

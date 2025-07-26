@@ -7,17 +7,22 @@
 	    <version>2025.6.1</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>emf</artifactId>
+	<artifactId>drawio</artifactId>
 	<packaging>jar</packaging>
-	<name>Nasdanika AI EMF</name>
-	<description>Interfaces and classes for AI (indexing, similarity search, summarization, RAG and Chat) on top of EMF Ecore models</description>
-	<url>https://docs.nasdanika.org/ai/emf/index.html</url>
+	<name>Nasdanika AI Drawio</name>
+	<description>Interfaces and classes for AI (indexing, similarity search, summarization, RAG and Chat) on top of Drawio diagrams</description>
+	<url>https://docs.nasdanika.org/ai/drawio/index.html</url>
 
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>drawio</artifactId>
+			<artifactId>core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>org.nasdanika.core</groupId>
+            <artifactId>drawio</artifactId>
+            <version>${core.version}</version>
+        </dependency>
 	</dependencies>
 </project>
