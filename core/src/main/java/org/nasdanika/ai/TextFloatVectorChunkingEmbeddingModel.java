@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
  * 
  * @param <T> a container of tokens, e.g. int[] or char[] or List&lt;Integer&gt;
  */
-public abstract class TextFloatVectorChunkingEmbeddings<T> implements TextFloatVectorEmbeddingModel {
+public abstract class TextFloatVectorChunkingEmbeddingModel<T> implements TextFloatVectorEmbeddingModel {
 	
 	private TextFloatVectorEmbeddingModel target;
 	private int chunkSize;
@@ -21,7 +21,7 @@ public abstract class TextFloatVectorChunkingEmbeddings<T> implements TextFloatV
 	 * @param chunkSize Chunk size, if non-positive, then target max input tokens is used as chunk size
 	 * @param overlap
 	 */
-	protected TextFloatVectorChunkingEmbeddings(
+	protected TextFloatVectorChunkingEmbeddingModel(
 			TextFloatVectorEmbeddingModel target,
 			int chunkSize, 
 			int overlap) {

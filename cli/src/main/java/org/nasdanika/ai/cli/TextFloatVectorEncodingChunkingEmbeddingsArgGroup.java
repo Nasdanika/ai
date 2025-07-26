@@ -1,7 +1,7 @@
 package org.nasdanika.ai.cli;
 
 import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
-import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddingModel;
 
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
@@ -21,8 +21,8 @@ public class TextFloatVectorEncodingChunkingEmbeddingsArgGroup extends TextFloat
 	protected EncodingType encodingType = EncodingType.CL100K_BASE;	
 	
 	@Override
-	public TextFloatVectorEncodingChunkingEmbeddings createChunkingEmbeddings(TextFloatVectorEmbeddingModel target) {
-		return new TextFloatVectorEncodingChunkingEmbeddings(target, chunkSize, chunksOverlap, encodingType);
+	public TextFloatVectorEncodingChunkingEmbeddingModel createChunkingEmbeddings(TextFloatVectorEmbeddingModel target) {
+		return new TextFloatVectorEncodingChunkingEmbeddingModel(target, chunkSize, chunksOverlap, encodingType);
 	}
 	
 	@Override

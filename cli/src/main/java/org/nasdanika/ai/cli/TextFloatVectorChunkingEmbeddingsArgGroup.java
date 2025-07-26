@@ -1,6 +1,6 @@
 package org.nasdanika.ai.cli;
 
-import org.nasdanika.ai.TextFloatVectorChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorChunkingEmbeddingModel;
 import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
 
 import io.opentelemetry.api.trace.Span;
@@ -18,7 +18,7 @@ public abstract class TextFloatVectorChunkingEmbeddingsArgGroup<T> {
 			description = "Chunks overlap in tokens")
 	protected int chunksOverlap;
 	
-	public abstract TextFloatVectorChunkingEmbeddings<T> createChunkingEmbeddings(TextFloatVectorEmbeddingModel target); 
+	public abstract TextFloatVectorChunkingEmbeddingModel<T> createChunkingEmbeddings(TextFloatVectorEmbeddingModel target); 
 	
 	public void setSpanAttributes(Span span) {
 		span.setAttribute("chunk.size", chunkSize);

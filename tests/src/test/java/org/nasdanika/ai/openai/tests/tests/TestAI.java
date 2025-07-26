@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,13 +24,14 @@ import org.json.JSONTokener;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.Chat.ResponseMessage;
-import org.nasdanika.ai.ChunkingEmbeddings;
-import org.nasdanika.ai.Embeddings;
-import org.nasdanika.ai.EmbeddingsResourceContents;
-import org.nasdanika.ai.EmbeddingsResource;
-import org.nasdanika.ai.EncodingChunkingEmbeddings;
+import org.nasdanika.ai.EmbeddingGenerator;
 import org.nasdanika.ai.SearchResult;
 import org.nasdanika.ai.SimilaritySearch;
+import org.nasdanika.ai.TextFloatVectorChunkingEmbeddingModel;
+import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
+import org.nasdanika.ai.TextFloatVectorEmbeddingResource;
+import org.nasdanika.ai.TextFloatVectorEmbeddingResourceContents;
+import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddingModel;
 import org.nasdanika.capability.CapabilityLoader;
 import org.nasdanika.capability.CapabilityProvider;
 import org.nasdanika.capability.ServiceCapabilityFactory;
@@ -41,7 +41,6 @@ import org.nasdanika.common.PrintStreamProgressMonitor;
 import org.nasdanika.common.ProgressMonitor;
 
 import com.github.jelmerk.hnswlib.core.DistanceFunctions;
-import com.github.jelmerk.hnswlib.core.Item;
 import com.github.jelmerk.hnswlib.core.hnsw.HnswIndex;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
@@ -65,9 +64,9 @@ public class TestAI {
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);			
 			
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
-			Iterable<CapabilityProvider<Embeddings>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
-			List<Embeddings> allEmbeddings = new ArrayList<>();
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
+			Iterable<CapabilityProvider<TextFloatVectorEmbeddingModel>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
+			List<TextFloatVectorEmbeddingModel	> allEmbeddings = new ArrayList<>();
 			embeddingsProviders.forEach(ep -> allEmbeddings.addAll(ep.getPublisher().collect(Collectors.toList()).block()));
 	        Tracer tracer = openTelemetry.getTracer("test.ai");        
 	        Span span = tracer
@@ -75,7 +74,7 @@ public class TestAI {
 	        	.startSpan();
 	        
 	        try (Scope scope = span.makeCurrent()) {
-				for (Embeddings embeddings: allEmbeddings) {				
+				for (TextFloatVectorEmbeddingModel embeddings: allEmbeddings) {				
 					assertNotNull(embeddings);
 					System.out.println("=== Embeddings ===");
 					System.out.println("Name:\t" + embeddings.getName());
@@ -106,9 +105,9 @@ public class TestAI {
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);			
 			
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
-			Iterable<CapabilityProvider<Embeddings>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
-			List<Embeddings> allEmbeddings = new ArrayList<>();
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
+			Iterable<CapabilityProvider<TextFloatVectorEmbeddingModel>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
+			List<TextFloatVectorEmbeddingModel> allEmbeddings = new ArrayList<>();
 			embeddingsProviders.forEach(ep -> allEmbeddings.addAll(ep.getPublisher().collect(Collectors.toList()).block()));
 	        Tracer tracer = openTelemetry.getTracer("test.ai");        
 	        Span span = tracer
@@ -116,7 +115,7 @@ public class TestAI {
 	        	.startSpan();
 	        
 	        try (Scope scope = span.makeCurrent()) {
-				for (Embeddings embeddings: allEmbeddings) {				
+				for (TextFloatVectorEmbeddingModel embeddings: allEmbeddings) {				
 					assertNotNull(embeddings);
 					System.out.println("=== Embeddings ===");
 					System.out.println("Name:\t" + embeddings.getName());
@@ -155,12 +154,12 @@ public class TestAI {
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);			
 			
-			Embeddings.Requirement eReq = new Embeddings.Requirement("Ollama", null, null);
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
-			Iterable<CapabilityProvider<Embeddings>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
-			List<Embeddings> allEmbeddings = new ArrayList<>();
+			EmbeddingGenerator.Requirement eReq = TextFloatVectorEmbeddingModel.createRequirement("Ollama", null, null);
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class, null, eReq);			
+			Iterable<CapabilityProvider<TextFloatVectorEmbeddingModel>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
+			List<TextFloatVectorEmbeddingModel> allEmbeddings = new ArrayList<>();
 			embeddingsProviders.forEach(ep -> ep.getPublisher().subscribe(allEmbeddings::add));
-			for (Embeddings embeddings: allEmbeddings) {				
+			for (TextFloatVectorEmbeddingModel embeddings: allEmbeddings) {				
 				assertNotNull(embeddings);
 				System.out.println("=== Embeddings ===");
 				System.out.println("Name:\t" + embeddings.getName());
@@ -196,8 +195,8 @@ public class TestAI {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
-			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
+			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
 			assertNotNull(embeddings);
 			assertEquals("text-embedding-ada-002", embeddings.getName());
 			assertEquals("OpenAI", embeddings.getProvider());
@@ -230,8 +229,8 @@ public class TestAI {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
-			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
+			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
 			assertNotNull(embeddings);
 			assertEquals("text-embedding-ada-002", embeddings.getName());
 			assertEquals("OpenAI", embeddings.getProvider());
@@ -270,8 +269,8 @@ public class TestAI {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class);			
-			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
+			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
 			assertNotNull(embeddings);
 			assertEquals("text-embedding-ada-002", embeddings.getName());
 			assertEquals("OpenAI", embeddings.getProvider());
@@ -364,6 +363,52 @@ public class TestAI {
 	}
 	
 	@Test
+	public void testDescribeImage() {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+	
+		List<Chat> chats = new ArrayList<>();		
+		try {
+			Requirement<Chat.Requirement, Chat> requirement = ServiceCapabilityFactory.createRequirement(Chat.class);			
+			for (CapabilityProvider<Chat> chatProvider: capabilityLoader.<Chat>load(requirement, progressMonitor)) {
+				chatProvider.getPublisher().subscribe(chats::add);
+			}
+			
+	        Tracer tracer = openTelemetry.getTracer("test.ai");        
+	        Span span = tracer
+	        	.spanBuilder("Chat")
+	        	.startSpan();
+	        try (Scope scope = span.makeCurrent()) {			
+				for (Chat chat: chats) {
+					describeImage(chat, openTelemetry);				
+				}
+	        } finally {
+	        	span.end();
+	        }
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}	
+	
+	private void describeImage(Chat chat, OpenTelemetry openTelemetry) {
+		System.out.println("=== Describe image ===");
+		assertNotNull(chat);
+		System.out.println("Name:\t" + chat.getName());
+		System.out.println("Provider:\t" + chat.getProvider());
+		System.out.println("Max input:\t" + chat.getMaxInputTokens());
+		System.out.println("Max output:\t" + chat.getMaxOutputTokens());
+        
+    	List<ResponseMessage> responses = chat.chat(
+    		Chat.Role.user.createMessage("Describe this image").addImage(getClass().getResourceAsStream("llama.png"))
+    	);
+    	
+    	for (ResponseMessage response: responses) {
+    		System.out.println(response.getContent());
+    	}
+	}
+	
+	@Test
 	public void testOllamaChat() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
@@ -413,13 +458,12 @@ public class TestAI {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
-			Embeddings.Requirement eReq = new Embeddings.Requirement(
+			EmbeddingGenerator.Requirement eReq = TextFloatVectorEmbeddingModel.createRequirement(
 					"OpenAI", 
 					"text-embedding-ada-002", 
 					null);
-			Requirement<Embeddings.Requirement, Embeddings> requirement = 
-					ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
-			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class, null, eReq);			
+			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
 			assertNotNull(embeddings);
 			assertEquals("text-embedding-ada-002", embeddings.getName());
 			assertEquals("OpenAI", embeddings.getProvider());
@@ -440,7 +484,7 @@ public class TestAI {
 	        
 	        try (Scope scope = span.makeCurrent()) {	        
 		        Collection<Mono<List<List<Float>>>> tasks = new ArrayList<>();
-		        Embeddings chunkingEmbeddings = new EncodingChunkingEmbeddings(
+		        TextFloatVectorEmbeddingModel chunkingEmbeddings = new TextFloatVectorEncodingChunkingEmbeddingModel(
 		        		embeddings, 
 		        		1000, 
 		        		20, 
@@ -510,7 +554,7 @@ public class TestAI {
 	@Test
 	public void testRAG() throws Exception {
 		// Creating a embeddings resource set from search-documents-embeddings.json
-		Collection<EmbeddingsResourceContents> resourceContents = new ArrayList<>(); 
+		Collection<TextFloatVectorEmbeddingResourceContents> resourceContents = new ArrayList<>(); 
 		File input =  new File("test-data/search-documents-embeddings.json").getCanonicalFile();
 		try (InputStream in = new FileInputStream(input)) {
 			JSONObject jsonObject = new JSONObject(new JSONTokener(in));
@@ -519,7 +563,7 @@ public class TestAI {
 				JSONArray ea = data.getJSONArray("embeddings");
 				for (int i = 0; i < ea.length(); ++i) {
 					JSONObject embeddings = ea.getJSONObject(i);				
-					resourceContents.add(new EmbeddingsResourceContents() {
+					resourceContents.add(new TextFloatVectorEmbeddingResourceContents() {
 						
 						@Override
 						public String getVersion() {							
@@ -575,10 +619,10 @@ public class TestAI {
 			}
 		}
 				
-		EmbeddingsResource resource = new EmbeddingsResource() {
+		TextFloatVectorEmbeddingResource resource = new TextFloatVectorEmbeddingResource() {
 			
 			@Override
-			public Flux<EmbeddingsResourceContents> getContents() {
+			public Flux<TextFloatVectorEmbeddingResourceContents> getContents() {
 				return Flux.fromIterable(resourceContents);
 			}
 
@@ -624,9 +668,9 @@ public class TestAI {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
 		try {
-			Embeddings.Requirement eReq = new Embeddings.Requirement("OpenAI", "text-embedding-ada-002", null);
-			Requirement<Embeddings.Requirement, Embeddings> requirement = ServiceCapabilityFactory.createRequirement(Embeddings.class, null, eReq);			
-			Embeddings embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			EmbeddingGenerator.Requirement eReq = TextFloatVectorEmbeddingModel.createRequirement("OpenAI", "text-embedding-ada-002", null);
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class, null, eReq);			
+			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
 			
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);
@@ -637,13 +681,13 @@ public class TestAI {
 	        	.startSpan();
 	        
 	        try (Scope scope = span.makeCurrent()) {	        
-		        ChunkingEmbeddings<?> chunkingEmbeddings = new EncodingChunkingEmbeddings(
+	        	TextFloatVectorChunkingEmbeddingModel<?> chunkingEmbeddings = new TextFloatVectorEncodingChunkingEmbeddingModel(
 		        		embeddings, 
 		        		1000, 
 		        		20, 
 		        		EncodingType.CL100K_BASE);
 		        
-				SimilaritySearch<String, Float> textSearch = SimilaritySearch.embeddingsSearch(multiVectorSearch, chunkingEmbeddings);
+				SimilaritySearch<String, Float> textSearch = SimilaritySearch.textFloatVectorEmbeddingSearch(multiVectorSearch, chunkingEmbeddings);
 				
 				String query = 
 					"""

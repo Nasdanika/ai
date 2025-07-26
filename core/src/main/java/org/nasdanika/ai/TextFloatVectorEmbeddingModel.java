@@ -6,7 +6,7 @@ import java.util.List;
  * TextFloatVectorEmbeddingModel "business" interface focusing on ease of use and leaving
  * token usage reporting to implementations.
  */
-public interface TextFloatVectorEmbeddingModel extends EmbeddingModel<String, List<List<Float>>>, TextEmbeddingGenerator<List<List<Float>>>, FloatVectorEmbeddingGenerator<String> {
+public interface TextFloatVectorEmbeddingModel extends EmbeddingModel<String, List<List<Float>>>, TextEmbeddingGenerator<List<List<Float>>>, FloatVectorEmbeddingGenerator<String>, Model {
 	
 	/**
 	 * Creates TextFloatVectorEmbeddingModel requirement.
@@ -39,10 +39,5 @@ public interface TextFloatVectorEmbeddingModel extends EmbeddingModel<String, Li
 	 * @return true if the input is too long for a given model
 	 */
 	boolean isTooLong(String input);
-	
-	/**
-	 * @return number of dimensions
-	 */
-	int getDimensions();
 
 }

@@ -5,9 +5,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.TextFloatVectorCharChunkingEmbeddings;
-import org.nasdanika.ai.TextFloatVectorChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorChunkingEmbeddingModel;
 import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
-import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddingModel;
 
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
@@ -77,7 +77,7 @@ public class TestChunking {
 	public void testEncodingChunking() {
 		EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
 		Encoding enc = registry.getEncoding(EncodingType.CL100K_BASE);
-		TextFloatVectorChunkingEmbeddings<?> ece = new TextFloatVectorEncodingChunkingEmbeddings(fakeEmbeddings, 5, 1, enc);		
+		TextFloatVectorChunkingEmbeddingModel<?> ece = new TextFloatVectorEncodingChunkingEmbeddingModel(fakeEmbeddings, 5, 1, enc);		
 		String input = "A quick brown fox jumps over a sleepy dog";
 		ece.chunk(input).forEach(System.out::println);		
 		

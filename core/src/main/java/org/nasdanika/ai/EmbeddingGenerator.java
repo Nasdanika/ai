@@ -23,7 +23,7 @@ public interface EmbeddingGenerator<S,E> {
 	record Requirement(
 		Class<?> sourceType,
 		Class<?> embeddingType,
-		Predicate<Class<EmbeddingGenerator<?,?>>> typePredicate,		
+		Predicate<Class<? extends EmbeddingGenerator<?,?>>> typePredicate,		
 		Predicate<EmbeddingGenerator<?,?>> predicate) {}	
 	
 	default E generate(S input) {

@@ -12,6 +12,10 @@ import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.models.ChatChoice;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
+import com.azure.ai.openai.models.ChatMessageContentItem;
+import com.azure.ai.openai.models.ChatMessageImageContentItem;
+import com.azure.ai.openai.models.ChatMessageImageUrl;
+import com.azure.ai.openai.models.ChatMessageTextContentItem;
 import com.azure.ai.openai.models.ChatRequestAssistantMessage;
 import com.azure.ai.openai.models.ChatRequestMessage;
 import com.azure.ai.openai.models.ChatRequestSystemMessage;
@@ -172,13 +176,13 @@ public class OpenAIChat implements Chat {
 			}
 			ChatRequestMessage chatMessage = 
 		    	switch (role) {
-		    	case "assistant" -> new ChatRequestAssistantMessage(message.getContent());
+		    	case "assistant" -> createChatRequestAssistantMessage(message);
 //		        	case "developer" -> new ChatRequestDeveloperMessage(message.getContent());
 //		        	case "function" -> new ChatRequestFunctionMessage(message.getContent());
-		    	case "system" -> new ChatRequestSystemMessage(message.getContent());
+		    	case "system" -> createChatRequestSystemMessage(message);
 //		        	case "tool" -> new ChatRequestToolMessage(message.getContent());
-		    	case "user" ->  new ChatRequestUserMessage(message.getContent());	
-		    	default ->  new ChatRequestUserMessage(message.getContent());
+		    	case "user" ->  createChatRequestUserMessage(message);	
+		    	default ->  createChatRequestUserMessage(message);
 		    	};
 		    chatMessages.add(chatMessage);		        	
 		}
@@ -186,6 +190,51 @@ public class OpenAIChat implements Chat {
 		ChatCompletionsOptions chatCompletionOptions = new ChatCompletionsOptions(chatMessages);
 		chatCompletionOptions.setModel(model);
 		return chatCompletionOptions;
+	}
+
+	protected ChatRequestUserMessage createChatRequestUserMessage(Message message) {
+		if (message.getImages().isEmpty()) {
+			return new ChatRequestUserMessage(message.getContent());
+		}
+		
+		List<ChatMessageContentItem> items = new ArrayList<>();
+		if (!Util.isBlank(message.getContent())) {
+			items.add(new ChatMessageTextContentItem(message.getContent()));
+		}
+		for (String imgUrl: message.getImages()) {
+			items.add(new ChatMessageImageContentItem(new ChatMessageImageUrl(imgUrl)));
+		}
+		return new ChatRequestUserMessage(items);				
+	}
+
+	protected ChatRequestSystemMessage createChatRequestSystemMessage(Message message) {
+		if (message.getImages().isEmpty()) {
+			return new ChatRequestSystemMessage(message.getContent());
+		}
+		
+		List<ChatMessageContentItem> items = new ArrayList<>();
+		if (!Util.isBlank(message.getContent())) {
+			items.add(new ChatMessageTextContentItem(message.getContent()));
+		}
+		for (String imgUrl: message.getImages()) {
+			items.add(new ChatMessageImageContentItem(new ChatMessageImageUrl(imgUrl)));
+		}
+		return new ChatRequestSystemMessage(items);				
+	}
+
+	protected ChatRequestAssistantMessage createChatRequestAssistantMessage(Message message) {
+		if (message.getImages().isEmpty()) {
+			return new ChatRequestAssistantMessage(message.getContent());
+		}
+		
+		List<ChatMessageContentItem> items = new ArrayList<>();
+		if (!Util.isBlank(message.getContent())) {
+			items.add(new ChatMessageTextContentItem(message.getContent()));
+		}
+		for (String imgUrl: message.getImages()) {
+			items.add(new ChatMessageImageContentItem(new ChatMessageImageUrl(imgUrl)));
+		}
+		return new ChatRequestAssistantMessage(items);				
 	}
 
 	@Override

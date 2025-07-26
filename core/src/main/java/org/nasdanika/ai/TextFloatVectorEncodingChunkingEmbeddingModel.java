@@ -8,11 +8,11 @@ import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
 
-public class TextFloatVectorEncodingChunkingEmbeddings extends TextFloatVectorChunkingEmbeddings<IntArrayList> {
+public class TextFloatVectorEncodingChunkingEmbeddingModel extends TextFloatVectorChunkingEmbeddingModel<IntArrayList> {
 	
 	private Encoding encoding;
 
-	public TextFloatVectorEncodingChunkingEmbeddings(
+	public TextFloatVectorEncodingChunkingEmbeddingModel(
 			TextFloatVectorEmbeddingModel target,
 			int chunkSize, 
 			int overlap,
@@ -22,7 +22,7 @@ public class TextFloatVectorEncodingChunkingEmbeddings extends TextFloatVectorCh
 		this.encoding = encoding;
 	}
 
-	public TextFloatVectorEncodingChunkingEmbeddings(
+	public TextFloatVectorEncodingChunkingEmbeddingModel(
 			TextFloatVectorEmbeddingModel target,
 			int chunkSize, 
 			int overlap,

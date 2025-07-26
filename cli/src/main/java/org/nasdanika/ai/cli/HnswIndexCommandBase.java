@@ -10,7 +10,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
-import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddings;
+import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddingModel;
 import org.nasdanika.ai.SimilaritySearch.EmbeddingsItem;
 import org.nasdanika.ai.SimilaritySearch.IndexId;
 import org.nasdanika.capability.CapabilityLoader;
@@ -89,7 +89,7 @@ public abstract class HnswIndexCommandBase extends TelemetryCommand {
 				throw new CommandLine.ExecutionException(spec.commandLine(), "Embedding model is not available");
 			}
 			
-			TextFloatVectorEncodingChunkingEmbeddings chunkingEmbeddings = encodingChunkingEmbeddingsArgGroup.createChunkingEmbeddings(embeddings);
+			TextFloatVectorEncodingChunkingEmbeddingModel chunkingEmbeddings = encodingChunkingEmbeddingsArgGroup.createChunkingEmbeddings(embeddings);
 	
 			Function<Map.Entry<String,String>, Flux<EmbeddingsItem>> mapper = entry -> {
 				Mono<List<List<Float>>> vectorsMono = chunkingEmbeddings.generateAsync(entry.getValue());
