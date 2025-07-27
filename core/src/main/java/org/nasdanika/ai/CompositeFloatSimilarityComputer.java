@@ -13,11 +13,12 @@ public class CompositeFloatSimilarityComputer<T> implements SimilarityComputer<T
 	protected Collection<Map.Entry<SimilarityComputer<? super T, Float>,Float>> computers = Collections.synchronizedCollection(new ArrayList<>());
 	protected float totalWeight;
 	
-	public synchronized void addComputer(SimilarityComputer<? super T, Float> computer, float weight) {
+	public synchronized CompositeFloatSimilarityComputer<T> addComputer(SimilarityComputer<? super T, Float> computer, float weight) {
 		if (weight != 0) {
 			computers.add(Map.entry(computer, weight));
 			totalWeight += weight;
 		}
+		return this;
 	}
 
 	@Override

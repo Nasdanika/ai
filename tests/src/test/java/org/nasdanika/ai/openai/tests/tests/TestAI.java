@@ -39,9 +39,11 @@ import org.nasdanika.capability.CapabilityLoader;
 import org.nasdanika.capability.CapabilityProvider;
 import org.nasdanika.capability.ServiceCapabilityFactory;
 import org.nasdanika.capability.ServiceCapabilityFactory.Requirement;
+import org.nasdanika.common.LoggerProgressMonitor;
 import org.nasdanika.common.MarkdownHelper;
-import org.nasdanika.common.PrintStreamProgressMonitor;
 import org.nasdanika.common.ProgressMonitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.jelmerk.hnswlib.core.DistanceFunctions;
 import com.github.jelmerk.hnswlib.core.hnsw.HnswIndex;
@@ -59,10 +61,38 @@ import reactor.core.publisher.Mono;
 
 public class TestAI {
 	
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAI.class);
+	
 	@Test
 	public void testEmbeddings() throws Exception {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();				
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);				
+		try {
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
+			Iterable<CapabilityProvider<TextFloatVectorEmbeddingModel>> embeddingsProviders = capabilityLoader.load(requirement, progressMonitor);
+			List<TextFloatVectorEmbeddingModel	> allEmbeddings = new ArrayList<>();
+			embeddingsProviders.forEach(ep -> allEmbeddings.addAll(ep.getPublisher().collect(Collectors.toList()).block()));
+			for (TextFloatVectorEmbeddingModel embeddings: allEmbeddings) {				
+				assertNotNull(embeddings);
+				System.out.println("=== Embeddings ===");
+				System.out.println("Name:\t" + embeddings.getName());
+				System.out.println("Provider:\t" + embeddings.getProvider());
+				System.out.println("Max input:\t" + embeddings.getMaxInputTokens());
+				System.out.println("Dimensions:\t" + embeddings.getDimensions());
+						
+	        	for (List<Float> vector: embeddings.generate("Hello world!")) {		
+        			System.out.println("\t\t" + vector.size());
+	        	}
+			}
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}
+	
+	@Test
+	public void testEmbeddingsWithTelemetry() throws Exception {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);				
 		try {
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);			
@@ -85,11 +115,8 @@ public class TestAI {
 					System.out.println("Max input:\t" + embeddings.getMaxInputTokens());
 					System.out.println("Dimensions:\t" + embeddings.getDimensions());
 							
-		        	for (Entry<String, List<List<Float>>> vectors: embeddings.generate(List.of("Hello world!", "Hello universe!")).entrySet()) {		
-		        		System.out.println("\t" + vectors.getKey());
-		        		for (List<Float> vector: vectors.getValue()) {
-		        			System.out.println("\t\t" + vector.size());
-		        		}
+		        	for (List<Float> vector: embeddings.generate("Hello world!")) {		
+	        			System.out.println("\t\t" + vector.size());
 		        	}
 				}
 	        } finally {
@@ -103,7 +130,7 @@ public class TestAI {
 	@Test
 	public void testEmbeddingsBatch() throws Exception {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();				
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);				
 		try {
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);			
@@ -152,7 +179,7 @@ public class TestAI {
 	@Test
 	public void testOllamaEmbeddings() throws Exception {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();				
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);				
 		try {
 			OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 			assertNotNull(openTelemetry);			
@@ -196,7 +223,29 @@ public class TestAI {
 	@Test
 	public void testOpenAIAsyncEmbeddings() throws InterruptedException {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
+		try {
+			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
+			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
+			assertNotNull(embeddings);
+			assertEquals("text-embedding-ada-002", embeddings.getName());
+			assertEquals("OpenAI", embeddings.getProvider());
+			assertEquals(1536, embeddings.getDimensions());
+	        
+        	List<List<Float>> vectors = embeddings.generateAsync("Hello world!").block();
+
+    		for (List<Float> vector: vectors) {
+    			System.out.println(vector.size());
+    		}
+		} finally {
+			capabilityLoader.close(progressMonitor);
+		}
+	}
+		
+	@Test
+	public void testOpenAIAsyncEmbeddingsWithTelemetry() throws InterruptedException {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		try {
 			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
 			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
@@ -213,24 +262,24 @@ public class TestAI {
 	        	.spanBuilder("Embeddings")
 	        	.startSpan();
 	        
-        	List<List<Float>> vectors = embeddings
-        		.generateAsync("Hello world!")
-        		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
-        		.doFinally(signal -> span.end())
-        		.block();
-
-    		for (List<Float> vector: vectors) {
-    			System.out.println(vector.size());
-    		}
+	    	List<List<Float>> vectors = embeddings
+	    		.generateAsync("Hello world!")
+	    		.contextWrite(reactor.util.context.Context.of(Context.class, Context.current().with(span)))
+	    		.doFinally(signal -> span.end())
+	    		.block();
+	
+			for (List<Float> vector: vectors) {
+				System.out.println(vector.size());
+			}
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}
-	}
+	}	
 		
 	@Test
 	public void testOpenAIAsyncEmbeddingsBatch() throws InterruptedException {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		try {
 			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
 			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
@@ -270,7 +319,7 @@ public class TestAI {
 	@Test
 	public void testOpenAIAsyncEmbeddingsPropagation() throws InterruptedException {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		try {
 			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class);			
 			TextFloatVectorEmbeddingModel embeddings = capabilityLoader.loadOne(requirement, progressMonitor);
@@ -319,7 +368,7 @@ public class TestAI {
 	@Test
 	public void testChat() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 
 		List<Chat> chats = new ArrayList<>();		
@@ -368,7 +417,7 @@ public class TestAI {
 	@Test
 	public void testOpenAIDescribeImage() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 	
 		List<Chat> chats = new ArrayList<>();		
@@ -398,7 +447,7 @@ public class TestAI {
 	@Test
 	public void testOpenAINarrateImage() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 	
 		List<Chat> chats = new ArrayList<>();		
@@ -428,7 +477,7 @@ public class TestAI {
 	@Test
 	public void testOpenAICachedNarrateImage() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 	
 		List<Chat> chats = new ArrayList<>();		
@@ -461,7 +510,7 @@ public class TestAI {
 	@Test
 	public void testOllamaDescribeImage() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 	
 		List<Chat> chats = new ArrayList<>();		
@@ -522,7 +571,7 @@ public class TestAI {
 		System.out.println("=== Narrate image with cache ===");	    
 		ChatImageNarrator chatImageNarrator = new ChatImageNarrator(chat);
 		ImageNarrator cachingImageNarrator = new CachingImageNarrator(chatImageNarrator, cache);
-		String narration = cachingImageNarrator.asFileEmbeddingGenerator().generate(new File("llama.png"));
+		String narration = cachingImageNarrator.asFileEmbeddingGenerator().generateAsync(new File("llama.png")).block();
 		System.out.println(narration);
 	}	
 	
@@ -530,7 +579,7 @@ public class TestAI {
 	@Test
 	public void testOllamaChat() {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
 		assertNotNull(openTelemetry);
 
@@ -575,7 +624,7 @@ public class TestAI {
 	@Test
 	public void testGenerateSearchDocumentsJSONOpenAIAsyncEmbeddings() throws Exception {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		try {
 			EmbeddingGenerator.Requirement eReq = TextFloatVectorEmbeddingModel.createRequirement(
 					"OpenAI", 
@@ -785,7 +834,7 @@ public class TestAI {
 		SimilaritySearch<List<List<Float>>, Float> multiVectorSearch = SimilaritySearch.adapt(vectorSearch);	
 		
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
-		ProgressMonitor progressMonitor = new PrintStreamProgressMonitor();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
 		try {
 			EmbeddingGenerator.Requirement eReq = TextFloatVectorEmbeddingModel.createRequirement("OpenAI", "text-embedding-ada-002", null);
 			Requirement<EmbeddingGenerator.Requirement, TextFloatVectorEmbeddingModel> requirement = ServiceCapabilityFactory.createRequirement(TextFloatVectorEmbeddingModel.class, null, eReq);			
