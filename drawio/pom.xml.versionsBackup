@@ -4,23 +4,25 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.7.0</version>
+	    <version>2025.6.1</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>tests</artifactId>
+	<artifactId>drawio</artifactId>
 	<packaging>jar</packaging>
-	<name>Nasdanika AI Tests</name>
+	<name>Nasdanika AI Drawio</name>
+	<description>Interfaces and classes for AI (indexing, similarity search, summarization, RAG and Chat) on top of Drawio diagrams</description>
+	<url>https://docs.nasdanika.org/ai/drawio/index.html</url>
 
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>openai</artifactId>
+			<artifactId>core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ollama</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.nasdanika.core</groupId>
+            <artifactId>drawio</artifactId>
+            <version>${core.version}</version>
         </dependency>
 	</dependencies>
 </project>

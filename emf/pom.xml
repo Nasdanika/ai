@@ -4,14 +4,17 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.6.1</version>
+	    <version>2025.7.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>emf</artifactId>
 	<packaging>jar</packaging>
 	<name>Nasdanika AI EMF</name>
 	<description>Interfaces and classes for AI (indexing, similarity search, summarization, RAG and Chat) on top of EMF Ecore models</description>
-	<url>https://docs.nasdanika.org/ai/emf/index.html</url>
+	<url>https://docs.nasdanika.org/ai/ai-emf/index.html</url>
+    <scm>
+       <url>https://github.com/Nasdanika/ai/tree/main/emf</url>
+    </scm>  
 
 	<dependencies>
 		<dependency>

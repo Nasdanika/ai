@@ -4,13 +4,16 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.6.1</version>
+	    <version>2025.7.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>openai</artifactId>
 	<packaging>jar</packaging>
 	<name>Nasdanika AI OpenAI</name>
-	<url>https://docs.nasdanika.org/ai/openai/index.html</url>
+	<url>https://docs.nasdanika.org/ai/open-ai/index.html</url>
+    <scm>
+       <url>https://github.com/Nasdanika/ai/tree/main/openai</url>
+    </scm>  
 
 	<dependencies>
 		<dependency>

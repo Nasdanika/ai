@@ -4,13 +4,16 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.6.1</version>
+	    <version>2025.7.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>cli</artifactId>
 	<packaging>jar</packaging>
 	<name>Nasdanika AI CLI</name>
-	<url>https://docs.nasdanika.org/ai/cli/index.html</url>
+	<url>https://docs.nasdanika.org/ai/ai-cli/index.html</url>
+    <scm>
+       <url>https://github.com/Nasdanika/ai/tree/main/cli</url>
+    </scm>  
 
 	<dependencies>
         <dependency>

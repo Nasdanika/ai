@@ -4,13 +4,16 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.6.1</version>
+	    <version>2025.7.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>mcp</artifactId>
 	<packaging>jar</packaging>
 	<name>Nasdanika AI MCP</name>
 	<url>https://docs.nasdanika.org/ai/mcp/index.html</url>
+    <scm>
+       <url>https://github.com/Nasdanika/ai/tree/main/mcp</url>
+    </scm>  
 
 	<dependencies>
         <dependency>
