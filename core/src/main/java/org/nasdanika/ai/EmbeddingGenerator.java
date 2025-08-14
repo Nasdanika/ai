@@ -3,8 +3,9 @@ package org.nasdanika.ai;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -77,6 +78,11 @@ public interface EmbeddingGenerator<S,E> extends Composable<EmbeddingGenerator<S
 				return EmbeddingGenerator.this.generateAsync(source).flatMap(next::generateAsync);
 			}
 			
+			@Override
+			public F generate(S input) {
+				return next.generate(EmbeddingGenerator.this.generate(input));
+			}
+			
 		};
 		
 	}
@@ -117,6 +123,48 @@ public interface EmbeddingGenerator<S,E> extends Composable<EmbeddingGenerator<S
 				
 				Mono<? extends E> otherResult = other.generateAsync(input);				
 		        Function<E, Mono<E>> transformer = a -> otherResult.map(b -> composer.apply(a, b)).defaultIfEmpty(a);
+		        
+				return thisResult
+		        		.flatMap(transformer)
+		        		.switchIfEmpty(otherResult);
+			}
+			
+			@Override
+			public E generate(S input) {
+				E thisResult = EmbeddingGenerator.this.generate(input);
+				if (composer == null) {
+					return thisResult == null ? other.generate(input) : thisResult;
+				}
+				
+				return composer.apply(thisResult, other.generate(input));
+			}
+			
+		};
+	}
+	
+	/**
+	 * Calls this embedding generator and returns its return value if it is not null and composer is null.
+	 * Otherwise calls the other embedding generator and then composes results by calling the composer argument. 
+	 * @param other
+	 * @param
+	 * @return
+	 */
+	default EmbeddingGenerator<S,E> composeAsync(EmbeddingGenerator<? super S,? extends E> other, BiFunction<? super E, ? super E, Mono<E>> composer) {
+		if (other == null) {
+			return this;
+		}
+		
+		return new EmbeddingGenerator<S, E>() {
+
+			@Override
+			public Mono<E> generateAsync(S input) {
+				Mono<E> thisResult = EmbeddingGenerator.this.generateAsync(input);
+				if (composer == null) {					
+					return thisResult.switchIfEmpty(other.generateAsync(input));
+				}
+				
+				Mono<? extends E> otherResult = other.generateAsync(input);				
+		        Function<E, Mono<E>> transformer = a -> otherResult.flatMap(b -> composer.apply(a, b)).defaultIfEmpty(a);
 		        
 				return thisResult
 		        		.flatMap(transformer)
