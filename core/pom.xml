@@ -17,6 +17,11 @@
 
 	<dependencies>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-imaging</artifactId>
+            <version>1.0.0-alpha6</version>
+        </dependency>	
+        <dependency>
             <groupId>org.nasdanika.core</groupId>
             <artifactId>common</artifactId>
             <version>${core.version}</version>

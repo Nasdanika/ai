@@ -1,4 +1,4 @@
-package org.nasdanika.common.tests;
+package org.nasdanika.ai.tests;
 
 import java.util.Map;
 
