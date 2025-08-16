@@ -15,6 +15,7 @@ import org.apache.commons.imaging.formats.png.PngImageMetadata;
 import org.apache.commons.imaging.formats.png.PngImagingParameters;
 import org.apache.commons.imaging.formats.png.PngWriter;
 import org.junit.jupiter.api.Test;
+import org.nasdanika.ai.UrlImageMetadataNarrator;
 
 public class TestImaging {
 	
@@ -35,6 +36,15 @@ public class TestImaging {
 			}
 		}				
 	}
+		
+	@Test
+	public void testUrlImageMetadataNarrator() throws Exception {
+		String resourceName = "nasdanika-logo-with-metadata.png";
+		URL imageResource = getClass().getResource(resourceName);
+		UrlImageMetadataNarrator narrator = new UrlImageMetadataNarrator();
+		System.out.print(narrator.generate(imageResource));
+		System.out.print(narrator.generateAsync(imageResource).block());
+	}	
 	
 	@Test
 	public void testWriteMetadata() throws Exception {
@@ -57,7 +67,6 @@ public class TestImaging {
 			    null // No additional write parameters
 			);
 		}
-	}
-	
+	}	
 
 }

@@ -6,7 +6,8 @@ module org.nasdanika.ai {
 	requires transitive hnswlib.core;
 	requires transitive hnswlib.utils;
 	requires transitive java.desktop;
-	requires org.nasdanika.common;
+	requires transitive org.nasdanika.common;
+	requires transitive org.apache.commons.imaging;
 	//requires transitive hnswlib.core.jdk17;
 		
 	exports org.nasdanika.ai;		
