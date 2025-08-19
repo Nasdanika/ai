@@ -22,13 +22,7 @@ public class Configuration  {
 	public static final String SOURCE_KEY = "source";
 	public static final String TARGET_KEY = "target";
 	
-	public static final String SORT_KEY_PROPERTY = "sort-key";
-	
 	public static final String ICON_PROPERTY = "icon";
-		
-	public String getSortKeyProperty() {
-		return SORT_KEY_PROPERTY;
-	}		
 	
 	public String getParentProperty() {
 		return PARENT_PROPERTY;

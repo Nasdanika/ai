@@ -25,6 +25,8 @@ public class ConnectionProcessor extends LayerElementProcessor<Connection> {
 		return section;
 	}
 	
+	// icon?
+	
 
 	@ProcessorElement
 	@Override
