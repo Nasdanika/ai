@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 /**
  * Base class for processors
  */
-public class BaseProcessor<T extends Element> {
+public class BaseProcessor<T extends Element> implements Comparable<BaseProcessor<?>> {
 	
 	private static final String PLAIN_TEXT = "text/plain";
 
@@ -47,7 +47,11 @@ public class BaseProcessor<T extends Element> {
 	@Registry 
 	public Map<Element, ProcessorInfo<BaseProcessor<?>>> registry;
 	
-	protected String id;
+	private String id;
+	
+	public void setId(String id) {
+		this.id = id;
+	}
 	
 	/**
 	 * @return Section id if this processor creates a section, null otherwise
@@ -57,13 +61,19 @@ public class BaseProcessor<T extends Element> {
 	}
 	
 	/**
-	 * Override to synchronously customize section configuration.
-	 * Override createSectionAsync for asynchronous customization.
-	 * @return
+	 * @return true if this processor is a part of aggregate.
+	 * For example Document - Page - Root - Layer aggregate for a document with a single page which has a unnamed single layer. 
+	 * In this aggregate one processor shall return false from this method and the rest shall return true.
+	 * Client code shall not collect sections from aggregated processors.
 	 */
-	protected Section doCreateSection() {
+	public boolean isAggregated() {
+		return false;
+	}
+	
+	public void configureSection(Section section) {
 		SectionReference sectionReference = createSectionReference();
-		Section section = new Section(sectionReference.getTitle(), sectionReference.getId());
+		section.setId(sectionReference.getId());
+		section.setTitle(sectionReference.getTitle());		
 		Content docContent = getDocumentation();
 		if (docContent != null) {
 			Section docSection = new Section("Documentation", null);
@@ -79,8 +89,17 @@ public class BaseProcessor<T extends Element> {
 				tooltipSection.getContents().add(new Content(tooltip, PLAIN_TEXT));
 				section.getChildren().add(tooltipSection);				
 			}
-		}		
-		
+		}				
+	}
+	
+	/**
+	 * Override to synchronously customize section configuration.
+	 * Override createSectionAsync for asynchronous customization.
+	 * @return
+	 */
+	protected Section doCreateSection() {
+		Section section = new Section();
+		configureSection(section);
 		return section;
 	}
 	
@@ -113,6 +132,7 @@ public class BaseProcessor<T extends Element> {
 
 	public SectionReference createSectionReference() {
 		SectionReference ret = new SectionReference();
+		ret.setId(id);
 		if (element instanceof ModelElement) {
 			ModelElement modelElement = (ModelElement) element;
 			String label = modelElement.getLabel();
@@ -139,6 +159,7 @@ public class BaseProcessor<T extends Element> {
 				String newId = id + "-" + Integer.toString(i, Character.MAX_RADIX);
 				if (idPredicate.test(newId)) {
 					id = newId;
+					break;
 				}
 			}
 		}
@@ -212,6 +233,40 @@ public class BaseProcessor<T extends Element> {
 			}
 		}
 		return null;
+	}
+	
+	/**
+	 * Measures connection distance from this element to the other element. 
+	 * @param o
+	 * @param tracer
+	 * @return distance if there is a trace, or -1.
+	 */
+	public int distance(BaseProcessor<?> target, Predicate<Element> tracer) {
+		if (tracer.test(element)) {
+			// TODO 
+		}
+		return -1;
+	}
+
+	/**
+	 * Override in subclasses to sort by dependency distance, containment, title, id.
+	 */
+	@Override
+	public int compareTo(BaseProcessor<?> o) {
+		// Dependency distance
+		
+		// Containment
+		
+		SectionReference sr = createSectionReference();
+		SectionReference osr = o.createSectionReference();
+		
+		if (sr == null) {
+			return osr == null ? 0 : 1;
+		}
+		if (osr == null) {
+			return -1;
+		}		
+		return sr.compareTo(osr);
 	}
 	
 }

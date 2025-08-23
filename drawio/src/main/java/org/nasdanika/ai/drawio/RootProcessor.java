@@ -1,50 +1,35 @@
 package org.nasdanika.ai.drawio;
 
-import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.eclipse.emf.common.util.URI;
-import org.nasdanika.common.MapCompoundSupplier;
-import org.nasdanika.common.ProgressMonitor;
-import org.nasdanika.common.Supplier;
+import org.nasdanika.ai.Section;
 import org.nasdanika.drawio.Layer;
 import org.nasdanika.drawio.Root;
 import org.nasdanika.graph.processor.ChildProcessors;
+import org.nasdanika.graph.processor.ProcessorElement;
 import org.nasdanika.graph.processor.ProcessorInfo;
-import org.nasdanika.models.app.Label;
-import org.nasdanika.models.app.graph.WidgetFactory;
+import org.nasdanika.graph.processor.RegistryEntry;
 
 public class RootProcessor extends BaseProcessor<Root> {
+	
+	// TODO - background color and background image from the model
+		
+	@RegistryEntry("#element.model.page == #this")
+	public PageProcessor pageProcessor;
 	
 	public RootProcessor(DrawioProcessorFactory factory) {
 		super(factory);
 	}
 
 	@ChildProcessors
-	public Map<Layer, ProcessorInfo<WidgetFactory>> layerProcessorInfos;
-	
-	@SuppressWarnings("resource")
-	@Override
-	public Supplier<Collection<Label>> createLabelsSupplier() {
-		MapCompoundSupplier<Layer, Collection<Label>> childLabelsSupplier = new MapCompoundSupplier<>("Layer labels supplier");
-		for (Entry<Layer, ProcessorInfo<WidgetFactory>> ce: layerProcessorInfos.entrySet()) {
-			childLabelsSupplier.put(ce.getKey(), ce.getValue().getProcessor().createLabelsSupplier());
-		}
-		
-		return childLabelsSupplier.then(this::createRootLabels);
-	}
-	
-	protected Collection<Label> createRootLabels(Map<Layer, Collection<Label>> childLabels, ProgressMonitor progressMonitor) {
-		return childLabels.values().stream().flatMap(Collection::stream).toList();
-	}
+	public Map<Layer, ProcessorInfo<LayerProcessor>> layerProcessorInfos;
 	
 	@Override
-	public void resolve(URI base, ProgressMonitor progressMonitor) {
-		super.resolve(base, progressMonitor);
-		for (ProcessorInfo<WidgetFactory> cpi: layerProcessorInfos.values()) {
-			cpi.getProcessor().resolve(base, progressMonitor);
-		}
+	public void configureSection(Section section) {
+		super.configureSection(section);
+		section.setTitle(element.getModel().getPage().getName());
+		// TODO - layer list if more than one. number of elements?
+		// TODO - logically merge with the background layer if it doesn't have a name
 	}
 
 }

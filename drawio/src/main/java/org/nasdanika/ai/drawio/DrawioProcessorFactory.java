@@ -1,18 +1,9 @@
 package org.nasdanika.ai.drawio;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.nasdanika.capability.CapabilityLoader;
-import org.nasdanika.capability.CapabilityProvider;
-import org.nasdanika.capability.ServiceCapabilityFactory;
-import org.nasdanika.capability.ServiceCapabilityFactory.Requirement;
-import org.nasdanika.capability.emf.ResourceSetRequirement;
-import org.nasdanika.common.DocumentationFactory;
 import org.nasdanika.common.ProgressMonitor;
 import org.nasdanika.drawio.ModelElement;
 import org.nasdanika.graph.Element;
@@ -21,45 +12,13 @@ import org.nasdanika.graph.processor.NodeProcessorConfig;
 import org.nasdanika.graph.processor.Processor;
 import org.nasdanika.graph.processor.ProcessorConfig;
 import org.nasdanika.graph.processor.ProcessorInfo;
-import org.nasdanika.models.app.graph.WidgetFactory;
 
 public class DrawioProcessorFactory extends Configuration {
 	
 	protected CapabilityLoader capabilityLoader;
-	
-	public DrawioProcessorFactory(ProgressMonitor progressMonitor) {
-		this(new CapabilityLoader(), progressMonitor);
-	}
-	
-	public DrawioProcessorFactory(CapabilityLoader capabilityLoader, ProgressMonitor progressMonitor) {
-		this.capabilityLoader = capabilityLoader;
-		Requirement<ResourceSetRequirement, ResourceSet> requirement = ServiceCapabilityFactory.createRequirement(ResourceSet.class);		
-		resourceSet = capabilityLoader.loadOne(requirement, progressMonitor);
-	}
-	
-	public CapabilityLoader getCapabilityLoader() {
-		return capabilityLoader;
-	}
-	
-	private Collection<DocumentationFactory> documentationFactories;
-	
-	@Override
-	public Collection<DocumentationFactory> getDocumentationFactories(ProgressMonitor progressMonitor) {
-		if (documentationFactories == null) {
-			documentationFactories = new ArrayList<>();
-			if (capabilityLoader != null) {
-				Requirement<Object, DocumentationFactory> requirement = ServiceCapabilityFactory.createRequirement(DocumentationFactory.class, null, new DocumentationFactory.Requirement(true));
-				Iterable<CapabilityProvider<Object>> cpi = capabilityLoader.load(requirement, progressMonitor);
-				for (CapabilityProvider<Object> cp: cpi) {				
-					cp.getPublisher().filter(Objects::nonNull).collectList().block().forEach(df -> documentationFactories.add((DocumentationFactory) df));
-				}
-			}
-		}
-		return documentationFactories;
-	}
 				
 	@Processor(type = org.nasdanika.drawio.Document.class)
-	public WidgetFactory createDocumentProcessor(
+	public DocumentProcessor createDocumentProcessor(
 		ProcessorConfig config, 
 		boolean parallel, 
 		BiConsumer<Element,BiConsumer<ProcessorInfo<Object>,ProgressMonitor>> infoProvider,
@@ -71,7 +30,7 @@ public class DrawioProcessorFactory extends Configuration {
 	}
 				
 	@Processor(type = org.nasdanika.drawio.Page.class)
-	public WidgetFactory createPageProcessor(
+	public PageProcessor  createPageProcessor(
 		ProcessorConfig config, 
 		boolean parallel, 
 		BiConsumer<Element,BiConsumer<ProcessorInfo<Object>,ProgressMonitor>> infoProvider,
@@ -83,7 +42,7 @@ public class DrawioProcessorFactory extends Configuration {
 	}
 				
 	@Processor(type = org.nasdanika.drawio.Root.class)
-	public WidgetFactory createRootProcessor(
+	public RootProcessor  createRootProcessor(
 		ProcessorConfig config, 
 		boolean parallel, 
 		BiConsumer<Element,BiConsumer<ProcessorInfo<Object>,ProgressMonitor>> infoProvider,
@@ -95,7 +54,7 @@ public class DrawioProcessorFactory extends Configuration {
 	}
 				
 	@Processor(type = org.nasdanika.drawio.Layer.class)
-	public WidgetFactory createLayerProcessor(
+	public LayerProcessor createLayerProcessor(
 		ProcessorConfig config, 
 		boolean parallel, 
 		BiConsumer<Element,BiConsumer<ProcessorInfo<Object>,ProgressMonitor>> infoProvider,
@@ -107,7 +66,7 @@ public class DrawioProcessorFactory extends Configuration {
 	}
 	
 	@Processor(type = org.nasdanika.drawio.Node.class)
-	public WidgetFactory createNodeProcessor(
+	public NodeProcessor createNodeProcessor(
 		NodeProcessorConfig<?,?> config, 
 		boolean parallel, 
 		BiConsumer<Element,BiConsumer<ProcessorInfo<Object>,ProgressMonitor>> infoProvider,
@@ -123,7 +82,7 @@ public class DrawioProcessorFactory extends Configuration {
 	}
 	
 	@Processor(type = org.nasdanika.drawio.Connection.class)
-	public WidgetFactory createConnectionProcessor(
+	public ConnectionProcessor createConnectionProcessor(
 		ConnectionProcessorConfig<?,?> config, 
 		boolean parallel, 
 		BiConsumer<Element,BiConsumer<ProcessorInfo<Object>,ProgressMonitor>> infoProvider,
