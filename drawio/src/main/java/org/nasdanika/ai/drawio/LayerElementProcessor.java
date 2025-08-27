@@ -10,12 +10,16 @@ import org.nasdanika.drawio.LayerElement;
 import org.nasdanika.drawio.ModelElement;
 import org.nasdanika.graph.processor.NodeProcessorInfo;
 import org.nasdanika.graph.processor.ProcessorInfo;
+import org.nasdanika.graph.processor.RegistryEntry;
 
-public class LayerElementProcessor<T extends LayerElement> extends LinkTargetProcessor<T> {
+public abstract class LayerElementProcessor<T extends LayerElement> extends LinkTargetProcessor<T> {
 	
 	protected Map<ModelElement, ProcessorInfo<BaseProcessor<?>>> childInfos = new ConcurrentHashMap<>();
 	
 	protected Map<Connection, CompletableFuture<ConnectionProcessor>> outgoingEndpoints = new ConcurrentHashMap<>();	
+		
+	@RegistryEntry("#element.linkTarget == #this")
+	public BaseProcessor<?> linkTargetProcessor;		
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override

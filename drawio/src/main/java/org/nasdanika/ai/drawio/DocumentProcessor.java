@@ -1,17 +1,9 @@
 package org.nasdanika.ai.drawio;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.function.BinaryOperator;
-import java.util.stream.Stream;
+import java.util.function.Consumer;
 
-import org.eclipse.emf.common.util.URI;
 import org.nasdanika.ai.SectionReference;
-import org.nasdanika.common.ProgressMonitor;
-import org.nasdanika.common.ReducingListCompoundSupplier;
-import org.nasdanika.common.Supplier;
 import org.nasdanika.drawio.Document;
 import org.nasdanika.drawio.Page;
 import org.nasdanika.graph.processor.ChildProcessors;
@@ -46,6 +38,19 @@ public class DocumentProcessor extends BaseProcessor<Document> {
 
 	@ChildProcessors
 	public Map<Page, ProcessorInfo<PageProcessor>> pageProcessors;
+	
+	@Override
+	protected Message createMessage(int depth) {
+		return new Message(this, depth) {
+			
+			@Override
+			void process(Consumer<Message> publisher) {
+				for (ProcessorInfo<PageProcessor> pp: pageProcessors.values()) {
+					publisher.accept(pp.getProcessor().createMessage(depth +1));
+				}
+			}
+		};
+	}
 	
 	// TODO - logically merge with the page if there is only one page
 	

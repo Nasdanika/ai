@@ -1,7 +1,11 @@
 package org.nasdanika.ai.drawio;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -24,7 +28,7 @@ import reactor.core.publisher.Mono;
 /**
  * Base class for processors
  */
-public class BaseProcessor<T extends Element> implements Comparable<BaseProcessor<?>> {
+public abstract class BaseProcessor<T extends Element> implements Comparable<BaseProcessor<?>> {
 	
 	private static final String PLAIN_TEXT = "text/plain";
 
@@ -236,26 +240,59 @@ public class BaseProcessor<T extends Element> implements Comparable<BaseProcesso
 	}
 	
 	/**
-	 * Measures connection distance from this element to the other element. 
+	 * Measures connection, link, or containment distance from this element to the other element. 
 	 * @param o
 	 * @param tracer
 	 * @return distance if there is a trace, or -1.
 	 */
-	public int distance(BaseProcessor<?> target, Predicate<Element> tracer) {
-		if (tracer.test(element)) {
-			// TODO 
+	public int distance(BaseProcessor<?> target) {
+		if (target == this) {
+			return 0;
 		}
-		return -1;
+		Queue<Message> processingQueue = new ConcurrentLinkedQueue<>();
+			
+		Predicate<BaseProcessor<?>> tracer = new HashSet<>()::add; 
+;		Consumer<Message> publisher = msg -> {
+			if (tracer.test(msg.getProcessor())) {
+				processingQueue.add(msg);
+			}
+		};
+		publisher.accept(createMessage(0));		
+		
+		Message message;
+		while ((message = processingQueue.poll()) != null) {
+			if (message.getProcessor() == target) {
+				return message.getDepth();
+			}
+			message.process(publisher);
+		}
+		return -1;		
+		
 	}
+	
+	protected abstract Message createMessage(int depth);
 
 	/**
 	 * Override in subclasses to sort by dependency distance, containment, title, id.
 	 */
 	@Override
 	public int compareTo(BaseProcessor<?> o) {
-		// Dependency distance
-		
-		// Containment
+		// Distance
+		int thisDistance = distance(o);
+		int oDistance = o.distance(this);
+		if (thisDistance == -1) {
+			if (oDistance != -1) {
+				return 1;
+			}
+		} else {
+			if (oDistance == -1) {
+				return -1;
+			}
+			int cmp = thisDistance - oDistance;
+			if (cmp != 0) {
+				return cmp;
+			}
+		}
 		
 		SectionReference sr = createSectionReference();
 		SectionReference osr = o.createSectionReference();

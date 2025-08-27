@@ -1,5 +1,7 @@
 package org.nasdanika.ai.drawio;
 
+import java.util.function.Consumer;
+
 import org.nasdanika.ai.SectionReference;
 import org.nasdanika.drawio.Page;
 import org.nasdanika.graph.processor.ProcessorElement;
@@ -21,6 +23,18 @@ public class PageProcessor extends LinkTargetProcessor<Page> {
 	public void setElement(Page element) {
 		super.setElement(element);
 		setId(element.getId());
+	}
+	
+	@Override
+	protected Message createMessage(int depth) {
+		return new Message(this, depth) {
+			
+			@Override
+			void process(Consumer<Message> publisher) {
+				publisher.accept(rootProcessor.createMessage(depth));
+			}
+			
+		};
 	}
 	
 	@Override

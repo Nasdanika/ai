@@ -1,6 +1,7 @@
 package org.nasdanika.ai.drawio;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.nasdanika.drawio.Connection;
 import org.nasdanika.drawio.Layer;
@@ -39,6 +40,20 @@ public class LayerProcessor extends BaseProcessor<Layer> {
 	@Override
 	public void setElement(Layer element) {
 		super.setElement(element);
+	}
+	
+	@Override
+	protected Message createMessage(int depth) {
+		return new Message(this, depth) {
+			
+			@Override
+			void process(Consumer<Message> publisher) {
+				for (ProcessorInfo<LayerElementProcessor<?>> ci: childInfos.values()) {
+					publisher.accept(ci.getProcessor().createMessage(depth + 1));
+				}
+			}
+			
+		};
 	}
 
 }

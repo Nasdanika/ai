@@ -1,9 +1,14 @@
 package org.nasdanika.ai.drawio;
 
+import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.nasdanika.ai.Section;
 import org.nasdanika.drawio.Connection;
+import org.nasdanika.drawio.Element;
+import org.nasdanika.drawio.Layer;
 import org.nasdanika.drawio.ModelElement;
 import org.nasdanika.drawio.Node;
 import org.nasdanika.graph.processor.ChildProcessor;
@@ -52,6 +57,51 @@ public class NodeProcessor extends LayerElementProcessor<Node> {
 		// TODO image description if image and image narrator (URI)
 		return super.createSectionAsync();
 	}
+	
+	@Override
+	public int compareTo(BaseProcessor<?> o) {
+		int thisDistance = distance(o);
+		int oDistance = o.distance(this);
+		if (thisDistance == -1) {
+			if (oDistance != -1) {
+				return 1;
+			}
+		} else {
+			if (oDistance == -1) {
+				return -1;
+			}
+			int cmp = thisDistance - oDistance;
+			if (cmp != 0) {
+				return cmp;
+			}
+		}
+		
+		if (o instanceof NodeProcessor && element.getModel().getPage() == ((NodeProcessor) o).element.getModel().getPage()) {
+			return configuration.getPageNodesComparator().compare(element, ((NodeProcessor) o).element);
+		}		
+		
+		return super.compareTo(o);
+	}
+		
+	@Override
+	protected Message createMessage(int depth) {
+		return new Message(this, depth) {
+			
+			@Override
+			void process(Consumer<Message> publisher) {
+				for (ProcessorInfo<BaseProcessor<?>> ci: childInfos.values()) {
+					publisher.accept(ci.getProcessor().createMessage(depth + 1));					
+				}
+				for (CompletableFuture<ConnectionProcessor> ci: outgoingEndpoints.values()) {
+					publisher.accept(ci.join().createMessage(depth + 1));					
+				}						
+				if (linkTargetProcessor != null) {
+					publisher.accept(linkTargetProcessor.createMessage(depth + 1));
+				}
+			}
+			
+		};
+	}	
 	
 //		Map<String, String> style = element.getStyle();
 //		String image = style.get("image");
