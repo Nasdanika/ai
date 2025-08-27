@@ -3,7 +3,7 @@ package org.nasdanika.ai.drawio;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.nasdanika.ai.Section;
+import org.nasdanika.common.Section;
 import org.nasdanika.drawio.Layer;
 import org.nasdanika.drawio.Root;
 import org.nasdanika.graph.processor.ChildProcessors;

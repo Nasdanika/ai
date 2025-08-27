@@ -16,7 +16,7 @@
             <mxGeometry x="360" y="650" width="120" height="60" as="geometry" />
           </mxCell>
         </object>
-        <object label="Bob&#39;s House" id="bobs-house">
+        <object label="Bob&#39;s House" tooltip="Bob&#39;s beautiful house" id="bobs-house">
           <mxCell style="swimlane;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="1" vertex="1">
             <mxGeometry x="540" y="600" width="200" height="130" as="geometry" />
           </mxCell>

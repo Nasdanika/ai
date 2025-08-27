@@ -11,11 +11,11 @@ import java.util.function.Predicate;
 
 import org.eclipse.emf.common.util.URI;
 import org.jsoup.Jsoup;
-import org.nasdanika.ai.Content;
-import org.nasdanika.ai.Section;
 import org.nasdanika.ai.SectionReference;
+import org.nasdanika.common.Content;
 import org.nasdanika.common.DefaultConverter;
 import org.nasdanika.common.Description;
+import org.nasdanika.common.Section;
 import org.nasdanika.common.Util;
 import org.nasdanika.drawio.Element;
 import org.nasdanika.drawio.ModelElement;

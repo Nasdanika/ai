@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.nasdanika.ai.Section;
 import org.nasdanika.common.ProgressMonitor;
+import org.nasdanika.common.Section;
 import org.nasdanika.common.Transformer;
 import org.nasdanika.drawio.ConnectionBase;
 import org.nasdanika.drawio.Document;

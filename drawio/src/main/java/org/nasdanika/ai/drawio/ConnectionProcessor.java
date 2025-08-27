@@ -2,7 +2,7 @@ package org.nasdanika.ai.drawio;
 
 import java.util.function.Consumer;
 
-import org.nasdanika.ai.Section;
+import org.nasdanika.common.Section;
 import org.nasdanika.drawio.Connection;
 import org.nasdanika.graph.processor.ProcessorElement;
 import org.nasdanika.graph.processor.RegistryEntry;

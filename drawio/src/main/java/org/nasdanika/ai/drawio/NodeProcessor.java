@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.nasdanika.ai.Section;
+import org.nasdanika.common.Section;
 import org.nasdanika.drawio.Connection;
 import org.nasdanika.drawio.Element;
 import org.nasdanika.drawio.Layer;

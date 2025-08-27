@@ -3,9 +3,9 @@ package org.nasdanika.ai.drawio.tests;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.nasdanika.ai.Section;
 import org.nasdanika.ai.drawio.DrawioSectionGenerator;
 import org.nasdanika.common.PrintStreamProgressMonitor;
+import org.nasdanika.common.Section;
 import org.nasdanika.drawio.Document;
 
 import reactor.core.publisher.Flux;
@@ -20,8 +20,8 @@ public class Tests {
 		List<Section> sections = sectionFlux.collectList().block();
 		System.out.println(sections.size());
 		sections.forEach(section -> {
-			System.out.println(section.getTitle() + ": " + section.getId());
+			System.out.println(section.getTitle() + ": " + section.getId() + " " + section.getContents() + " " + section.getChildren());
 		});
 	}
-
+		
 }
