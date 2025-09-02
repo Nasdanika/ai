@@ -3,10 +3,10 @@ package org.nasdanika.ai.drawio.tests;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.nasdanika.ai.drawio.DrawioSectionGenerator;
 import org.nasdanika.common.PrintStreamProgressMonitor;
 import org.nasdanika.common.Section;
 import org.nasdanika.drawio.Document;
+import org.nasdanika.drawio.gen.section.DrawioSectionGenerator;
 
 import reactor.core.publisher.Flux;
 
