@@ -1,5 +1,6 @@
 package org.nasdanika.ai;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,14 +42,14 @@ public interface EmbeddingGenerator<S,E> extends Composable<EmbeddingGenerator<S
 	/**
 	 * Batch generation
 	 */
-	default Map<S, E> generate(List<S> input) {
+	default Map<S, E> generate(Collection<S> input) {
 		return generateAsync(input).block();
 	}
 	
 	/**
 	 * Asynchronous batch generation
 	 */
-	default Mono<Map<S, E>> generateAsync(List<S> input) {
+	default Mono<Map<S, E>> generateAsync(Collection<S> input) {
 		List<Mono<Entry<S,E>>> monos = input
 			.stream()
 			.map(ie -> {
