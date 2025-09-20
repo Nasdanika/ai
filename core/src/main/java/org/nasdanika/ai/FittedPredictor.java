@@ -36,12 +36,14 @@ public interface FittedPredictor<F,L,E> extends Predictor<F,L> {
 		}
 		
 		/**
-		 * Creates a predictor by fitting a collection of samples.
+		 * Creates a predictor by fitting a flux of samples.
 		 * @param <S>
 		 * @param samples
 		 * @param featureMapper
 		 * @param labelMapper
-		 * @return
+		 * @return A mono providing a predictor. 
+		 * The mono can publish a predictor before the flux is finished and update the predictor with new
+		 * samples from the flux.  
 		 */
 		<S> Mono<FittedPredictor<F,L,E>> fitAsync(
 				Flux<S> samples, 

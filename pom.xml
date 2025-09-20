@@ -205,6 +205,8 @@
 		<module>mcp-help</module>
 		<module>emf</module>
 		<module>drawio</module>
+		<module>math</module>
+		<module>smile</module>
 	</modules>	
 
 	<distributionManagement>

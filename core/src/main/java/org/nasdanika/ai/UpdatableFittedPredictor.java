@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 public interface UpdatableFittedPredictor<F,L,E> extends FittedPredictor<F,L,E> {
 	
 	/**
-	 * Creates a predictor by fitting a collection of samples.
+	 * Updates the predictor with a sample.
 	 * @param <S>
 	 * @param samples
 	 * @param featureMapper
@@ -34,7 +34,7 @@ public interface UpdatableFittedPredictor<F,L,E> extends FittedPredictor<F,L,E> 
 	}
 	
 	/**
-	 * Creates a predictor by fitting a collection of samples.
+	 * Updates the predictor with a sample.
 	 * @param <S>
 	 * @param samples
 	 * @param featureMapper
@@ -49,7 +49,7 @@ public interface UpdatableFittedPredictor<F,L,E> extends FittedPredictor<F,L,E> 
 	// Batch updates
 	
 	/**
-	 * Creates a predictor by fitting a collection of samples.
+	 * Updates the predictor with a batch of samples.
 	 * @param <S>
 	 * @param samples
 	 * @param featureMapper
@@ -68,7 +68,7 @@ public interface UpdatableFittedPredictor<F,L,E> extends FittedPredictor<F,L,E> 
 	}
 	
 	/**
-	 * Creates a predictor by fitting a collection of samples.
+	 * Updates the predictor with a flux of samples.
 	 * @param <S>
 	 * @param samples
 	 * @param featureMapper
