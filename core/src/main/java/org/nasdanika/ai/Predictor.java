@@ -1,7 +1,7 @@
 package org.nasdanika.ai;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,17 +23,19 @@ public interface Predictor<F,L> {
 	
 	Mono<L> predictAsync(F input);
 	
+	record Sample<F,L>(F feature, L label) {}
+	
 	/**
 	 * Batch prediction
 	 */
-	default Map<F, L> predict(Collection<F> input) {
+	default List<Sample<F, L>> predict(Collection<F> input) {
 		return predictAsync(input).block();
 	}
 	
 	/**
 	 * Asynchronous batch generation
 	 */
-	default Mono<Map<F, L>> predictAsync(Collection<F> input) {
+	default Mono<List<Sample<F, L>>> predictAsync(Collection<F> input) {
 		List<Mono<Entry<F,L>>> monos = input
 			.stream()
 			.map(ie -> {
@@ -45,12 +47,12 @@ public interface Predictor<F,L> {
 		return Mono.zip(monos, this::combine);
 	}
 		
-	private Map<F, L> combine(Object[] elements) {
-		Map<F, L> ret = new LinkedHashMap<>();
+	private List<Sample<F, L>> combine(Object[] elements) {
+		List<Sample<F, L>> ret = new ArrayList<>();
 		for (Object el: elements) {
 			@SuppressWarnings("unchecked")
 			Entry<F,L> e = (Entry<F,L>) el;
-			ret.put(e.getKey(), e.getValue());
+			ret.add(new Sample<>(e.getKey(), e.getValue()));
 		}		
 		return ret;
 	}

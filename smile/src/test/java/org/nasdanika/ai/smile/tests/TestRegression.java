@@ -1,9 +1,15 @@
 package org.nasdanika.ai.smile.tests;
 
+import java.util.List;
 import java.util.Properties;
 
+import org.assertj.core.util.Arrays;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.nasdanika.ai.FittedPredictor;
+import org.nasdanika.ai.smile.OLSPredictorFitter;
+import org.nasdanika.ai.smile.RandomForestPredictorFitter;
+import org.nasdanika.ai.smile.RegressionTreePredictorFitter;
 
 import smile.base.mlp.Layer;
 import smile.base.mlp.OutputFunction;
@@ -40,6 +46,25 @@ public class TestRegression {
 	}
 	
 	@Test
+	public void testRandomForestPredictorFitter() {
+		double[][] data = createData();
+		List<Object> dataList = Arrays.asList(data);
+		RandomForestPredictorFitter rfpf = new RandomForestPredictorFitter();
+		FittedPredictor<double[], double[], Double> predictor = rfpf.fit(
+				dataList, 
+				e -> { 
+					double[] s = (double[]) e;
+					double[] f = new double[s.length -1];
+					System.arraycopy(s, 0, f, 0, f.length);
+					return f;
+				},
+				e -> new double[] { ((double[]) e)[((double[]) e).length - 1] });		
+		
+		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
+		System.out.println(prediction[0]);
+	}	
+	
+	@Test
 	public void testOLS() {
 		DataFrame df = DataFrame.of(createData());
 		Formula formula = Formula.lhs("V4");
@@ -51,6 +76,25 @@ public class TestRegression {
 		
 		System.out.println(ols.predict(new double[] { 7, 8, 9 }));
 	}
+	
+	@Test
+	public void testOLSPredictorFitter() {
+		double[][] data = createData();
+		List<Object> dataList = Arrays.asList(data);
+		OLSPredictorFitter olspf = new OLSPredictorFitter();
+		FittedPredictor<double[], double[], Double> predictor = olspf.fit(
+				dataList, 
+				e -> { 
+					double[] s = (double[]) e;
+					double[] f = new double[s.length -1];
+					System.arraycopy(s, 0, f, 0, f.length);
+					return f;
+				},
+				e -> new double[] { ((double[]) e)[((double[]) e).length - 1] });		
+		
+		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
+		System.out.println(prediction[0]);
+	}	
 
 	@Test
 	@Disabled
@@ -62,6 +106,26 @@ public class TestRegression {
 		double[] prediction = regressionTree.predict(input);
 		System.out.println(prediction[0]);		
 	}
+	
+	@Test
+	@Disabled
+	public void testRegressionTreePredictorFitter() {
+		double[][] data = createData();
+		List<Object> dataList = Arrays.asList(data);
+		RegressionTreePredictorFitter rtpf = new RegressionTreePredictorFitter();
+		FittedPredictor<double[], double[], Double> predictor = rtpf.fit(
+				dataList, 
+				e -> { 
+					double[] s = (double[]) e;
+					double[] f = new double[s.length -1];
+					System.arraycopy(s, 0, f, 0, f.length);
+					return f;
+				},
+				e -> new double[] { ((double[]) e)[((double[]) e).length - 1] });		
+		
+		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
+		System.out.println(prediction[0]);
+	}	
 	
 	@Test
 	public void testMLP() {

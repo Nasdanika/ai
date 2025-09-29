@@ -1,36 +1,35 @@
 package org.nasdanika.ai.math;
 
-import java.util.Collection;
 import java.util.function.Function;
 
-import org.nasdanika.ai.FittedPredictor;
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoints;
+import org.nasdanika.ai.AbstractDoubleFitter;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-public class PolynomialPredictorFitter implements FittedPredictor.Fitter<double[], Double, Double> {
+/**
+ * Features and labels of size 1 - only the first element is taken
+ */
+public class PolynomialPredictorFitter extends AbstractDoubleFitter {
 
 	@Override
-	public <S> Mono<FittedPredictor<double[], Double, Double>> fitAsync(
-			Flux<S> samples,
-			Function<S, Mono<double[]>> featureMapper, 
-			Function<S, Mono<Double>> labelMapper) {
+	protected Function<double[][], double[][]> fit(double[][] features, double[][] labels) {
+		WeightedObservedPoints wobs = new WeightedObservedPoints();
+		for (int i = 0; i < features.length; ++i) {
+			wobs.add(features[i][0], labels[i][0]);
+		}
 		
-		// TODO - rewrite properly - mapping instead of blocking
-		return Mono.just(fit(
-			samples.collectList().block(),	
-			s -> featureMapper.apply(s).block(),
-			s -> labelMapper.apply(s).block()));
+		PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
+		double[] params = fitter.fit(wobs.toList());
+		PolynomialFunction func = new PolynomialFunction(params);
+		
+		return input -> {
+			double[][] output = new double[input.length][];
+			for (int i = 0; i < input.length; ++i) {
+				output[i] = new double[] { func.value(input[i][0]) };
+			}
+			return output;
+		};
 	}
 	
-	@Override
-	public <S> FittedPredictor<double[], Double, Double> fit(
-			Collection<S> samples, 
-			Function<S, double[]> featureMapper,
-			Function<S, Double> labelMapper) {
-		
-		// TODO Auto-generated method stub
-		return FittedPredictor.Fitter.super.fit(samples, featureMapper, labelMapper);
-	}
-
 }

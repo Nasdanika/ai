@@ -2,6 +2,7 @@ package org.nasdanika.ai.openai;
 
 import java.lang.module.ModuleDescriptor.Version;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -164,7 +165,7 @@ public class TextFloatVectorOpenAIEmbeddings implements TextFloatVectorEmbedding
 	}
 
 	@Override
-	public Map<String, List<List<Float>>> generate(List<String> input) {
+	public Map<String, List<List<Float>>> generate(Collection<String> input) {
         String spanName = "TextFloatVectorEmbeddingModel " + provider + " " + model;
         if (!Util.isBlank(version)) {
         	spanName += " " + version;
@@ -177,12 +178,13 @@ public class TextFloatVectorOpenAIEmbeddings implements TextFloatVectorEmbedding
 	        
 	    try (Scope scope = span.makeCurrent()) {
 			Map<String, List<List<Float>>> ret = new LinkedHashMap<>();
+			List<String> inputList = List.copyOf(input);
 	    	for (int i = 0; i < input.size(); i += batchSize) {
-	    		List<String> batch = input.subList(i, Math.min(i + batchSize, input.size()));
+	    		List<String> batch = inputList.subList(i, Math.min(i + batchSize, input.size()));
 				EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(batch);
 				com.azure.ai.openai.models.Embeddings embeddings = openAIClient.getEmbeddings(model, embeddingOptions);
 				for (EmbeddingItem ei: embeddings.getData()) {
-					String prompt = input.get(i + ei.getPromptIndex());
+					String prompt = inputList.get(i + ei.getPromptIndex());
 					ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
 				}
 				EmbeddingsUsage usage = embeddings.getUsage();
@@ -219,7 +221,7 @@ public class TextFloatVectorOpenAIEmbeddings implements TextFloatVectorEmbedding
 		return input;
 	}
 
-	protected Attributes filterSpanInputAttributes(List<String> input) {
+	protected Attributes filterSpanInputAttributes(Collection<String> input) {
 		List<String> filteredInput = input.stream()
 			.map(this::filterSpanInputAttributeElement)
 			.filter(s -> !Util.isBlank(s))
@@ -232,7 +234,7 @@ public class TextFloatVectorOpenAIEmbeddings implements TextFloatVectorEmbedding
 	}
 
 	@Override
-	public Mono<Map<String, List<List<Float>>>> generateAsync(List<String> input) {
+	public Mono<Map<String, List<List<Float>>>> generateAsync(Collection<String> input) {
 		return Mono.deferContextual(contextView -> {
 			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 
@@ -249,8 +251,9 @@ public class TextFloatVectorOpenAIEmbeddings implements TextFloatVectorEmbedding
 			
 			List<Mono<Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>>> batchResults = new ArrayList<>();
 	        try (Scope scope = span.makeCurrent()) {
+	    		List<String> inputList = List.copyOf(input);
 		    	for (int i = 0; i < input.size(); i += batchSize) {
-		    		List<String> batch = input.subList(i, Math.min(i + batchSize, input.size()));														
+		    		List<String> batch = inputList.subList(i, Math.min(i + batchSize, input.size()));		
 					EmbeddingsOptions embeddingOptions = new EmbeddingsOptions(batch);
 					final int offset = i;
 					Mono<Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>> batchResult = openAIAsyncClient
@@ -268,7 +271,7 @@ public class TextFloatVectorOpenAIEmbeddings implements TextFloatVectorEmbedding
 							@SuppressWarnings("unchecked")
 							Map.Entry<Integer,com.azure.ai.openai.models.Embeddings> embeddingsEntry = (Map.Entry<Integer,com.azure.ai.openai.models.Embeddings>) ae;
 							for (EmbeddingItem ei: embeddingsEntry.getValue().getData()) {
-								String prompt = input.get(embeddingsEntry.getKey() + ei.getPromptIndex());
+								String prompt = inputList.get(embeddingsEntry.getKey() + ei.getPromptIndex());
 								ret.put(prompt, Collections.singletonList(ei.getEmbedding()));
 							}
 							EmbeddingsUsage usage = embeddingsEntry.getValue().getUsage();

@@ -6,13 +6,12 @@ import org.nasdanika.ai.AbstractDoubleFitter;
 
 import smile.data.DataFrame;
 import smile.data.formula.Formula;
-import smile.regression.LinearModel;
-import smile.regression.OLS;
+import smile.regression.RandomForest;
 
 /**
  * Uses all features and first label
  */
-public class OLSPredictorFitter  extends AbstractDoubleFitter {
+public class RandomForestPredictorFitter  extends AbstractDoubleFitter {
 
 	@Override
 	protected Function<double[][], double[][]> fit(double[][] features, double[][] labels) {
@@ -25,12 +24,13 @@ public class OLSPredictorFitter  extends AbstractDoubleFitter {
 		
 		DataFrame df = DataFrame.of(data);
 		Formula formula = Formula.lhs("V" + data[0].length);
-		LinearModel ols = OLS.fit(formula, df);
+		RandomForest randomForest = RandomForest.fit(formula, df);
 		
 		return input -> {
-			double[][] output = new double[input.length][];
+			double[] result = randomForest.predict(DataFrame.of(input));
+			double[][] output = new double[result.length][];
 			for (int i = 0; i < input.length; ++i) {
-				output[i] = new double[] { ols.predict(input[i]) };
+				output[i] = new double[] { result[i] };
 			}
 			return output;
 		};
