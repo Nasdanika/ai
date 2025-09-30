@@ -111,7 +111,28 @@ public abstract class AbstractDoubleFitter implements FittedPredictor.Fitter<dou
 			double[][] features,
 			double[][] labels) {
 		
-		return null; // TODO
+		double[][] prediction = predictor.apply(features);
+		if (prediction == null) {
+			return null;
+		}
+		double total = 0.0;
+		int count = 0;
+		for (int i = 0; i < labels.length; ++i) {
+			double[] pe = prediction[i];
+			if (pe != null) {
+				for (int j = 0; j < labels[j].length; ++j) {
+					double delta = pe[j] - labels[i][j];
+					total += delta * delta;
+					++count;
+				}
+			}
+		}
+		
+		if (count == 0) {
+			return null;
+		}
+		
+		return total / count;
 	}	
 
 }

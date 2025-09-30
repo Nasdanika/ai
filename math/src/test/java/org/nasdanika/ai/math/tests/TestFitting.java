@@ -33,12 +33,14 @@ public class TestFitting {
 		
 		WeightedObservedPoints wobs = new WeightedObservedPoints();
 		wobs.add(1, 2);
-		wobs.add(2, 3);
-		wobs.add(3, 4);
+		wobs.add(2, 2.9);
+		wobs.add(3, 4.1);
 		wobs.add(4, 5);
 		wobs.add(5, 6);
 				
 		FittedPredictor<double[], double[], Double> predictor = ppf.fit(wobs.toList(), p -> new double[] { p.getX() }, p -> new double[] { p.getY() });		
+		System.out.println(predictor.getError());
+		
 		double[] prediction = predictor.predict(new double[] { 6.0  });				
 		System.out.println(prediction[0]);
 	}

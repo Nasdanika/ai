@@ -7,6 +7,7 @@ import org.assertj.core.util.Arrays;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.FittedPredictor;
+import org.nasdanika.ai.smile.MLPPredictorFitter;
 import org.nasdanika.ai.smile.OLSPredictorFitter;
 import org.nasdanika.ai.smile.RandomForestPredictorFitter;
 import org.nasdanika.ai.smile.RegressionTreePredictorFitter;
@@ -27,11 +28,11 @@ public class TestRegression {
 	
 	protected double[][] createData() {
 		return new double[][] {
-			{ 1, 2, 3, 4 },
-			{ 2, 3, 4, 5 },
-			{ 3, 4, 5, 6 },
-			{ 4, 5, 6, 7 },
-			{ 5, 6, 7, 8 }			
+			{ 1, 2, 3, 4.1 },
+			{ 2, 3, 4, 4.9 },
+			{ 3, 4, 5, 6.1 },
+			{ 4, 5, 6, 6.9 },
+			{ 5, 6, 7, 8.1 }			
 		};				
 	}
 	
@@ -60,6 +61,7 @@ public class TestRegression {
 				},
 				e -> new double[] { ((double[]) e)[((double[]) e).length - 1] });		
 		
+		System.out.println(predictor.getError());
 		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
 		System.out.println(prediction[0]);
 	}	
@@ -91,6 +93,8 @@ public class TestRegression {
 					return f;
 				},
 				e -> new double[] { ((double[]) e)[((double[]) e).length - 1] });		
+		
+		System.out.println(predictor.getError());
 		
 		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
 		System.out.println(prediction[0]);
@@ -137,6 +141,26 @@ public class TestRegression {
 		double prediction = mlp.predict( new double[] { 6, 7, 8, 9 });
 		System.out.println(prediction);		
 	}
+	
+	@Test
+	public void testMLPPredictorFitter() {
+		double[][] data = createData();
+		List<Object> dataList = Arrays.asList(data);
+		MLPPredictorFitter mlppf = new MLPPredictorFitter();
+		FittedPredictor<double[], double[], Double> predictor = mlppf.fit(
+				dataList, 
+				e -> { 
+					double[] s = (double[]) e;
+					double[] f = new double[s.length -1];
+					System.arraycopy(s, 0, f, 0, f.length);
+					return f;
+				},
+				e -> new double[] { ((double[]) e)[((double[]) e).length - 1] });		
+		
+		System.out.println(predictor.getError());
+		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
+		System.out.println(prediction[0]);
+	}	
 	
 	@Test
 	public void testMLPLowLevel() {
