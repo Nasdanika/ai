@@ -134,5 +134,10 @@ public abstract class AbstractDoubleFitter implements FittedPredictor.Fitter<dou
 		
 		return total / count;
 	}	
-
+		
+	// TODO - stacking/composition binary operators to add/subtract labels. 
+	// Fit this one, fit the next one on label and prediction difference. 
+	// Predict by adding this prediciton to the next prediction.
+	// Adapters to a single double result with support of stacking/composition too?
+	
 }

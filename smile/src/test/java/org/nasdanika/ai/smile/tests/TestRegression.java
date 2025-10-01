@@ -1,12 +1,15 @@
 package org.nasdanika.ai.smile.tests;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 
 import org.assertj.core.util.Arrays;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.FittedPredictor;
+import org.nasdanika.ai.FittedPredictor.Fitter;
 import org.nasdanika.ai.smile.MLPPredictorFitter;
 import org.nasdanika.ai.smile.OLSPredictorFitter;
 import org.nasdanika.ai.smile.RandomForestPredictorFitter;
@@ -98,6 +101,40 @@ public class TestRegression {
 		
 		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
 		System.out.println(prediction[0]);
+	}	
+	
+	@Test
+	public void testOLSPredictorFitterAdapt() {
+		Map<String,Double> ageMap = Map.of(
+			"Alice", 25.0,
+			"Bob", 30.0,
+			"Eve", 35.0,
+			"Mallory", 40.0
+		);
+		
+		Map<String,Double> weightMap = Map.of(
+				"Alice", 100.0,
+				"Bob", 120.0,
+				"Eve", 140.0,
+				"Mallory", 0.0
+			);
+				
+		OLSPredictorFitter olspf = new OLSPredictorFitter();
+		Fitter<String, double[], Double> featureAdapted = olspf.adaptFeature(name -> new double[] { ageMap.get(name) });
+		Fitter<String, Double, Double> labelAdapted = featureAdapted.adaptLabel(
+				weight -> new double[] { weight },
+				wa -> wa[0]
+		);
+		
+		FittedPredictor<String, Double, Double> predictor = labelAdapted.fit(
+				List.of("Alice", "Bob", "Eve"),
+				Function.identity(),
+				weightMap::get);		
+		
+		System.out.println(predictor.getError());
+		
+		double prediction = predictor.predict("Mallory");
+		System.out.println(prediction);
 	}	
 
 	@Test
