@@ -2,7 +2,7 @@ package org.nasdanika.ai.smile;
 
 import java.util.function.Function;
 
-import org.nasdanika.ai.AbstractMapReduceDoubleFitter;
+import org.nasdanika.ai.AbstractRecursiveDoubleFitter;
 
 import smile.data.DataFrame;
 import smile.data.formula.Formula;
@@ -12,7 +12,7 @@ import smile.regression.OLS;
 /**
  * Uses all features and first label
  */
-public class OLSPredictorFitter extends AbstractMapReduceDoubleFitter {
+public class OLSRecursivePredictorFitter extends AbstractRecursiveDoubleFitter {
 
 	@Override
 	protected Function<double[][], double[]> fit(double[][] features, double[] labels) {

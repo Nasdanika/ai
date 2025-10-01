@@ -134,6 +134,16 @@ public abstract class AbstractDoubleFitter implements FittedPredictor.Fitter<dou
 		
 		return total / count;
 	}	
+	
+	public static Function<double[][], double[]> wrap(Function<double[], Double> predictor) {
+		return input -> {
+			double[] output = new double[input.length];
+			for (int i = 0; i < input.length; ++i) {
+				output[i] = predictor.apply(input[i]);
+			}
+			return output;
+		};		
+	}	
 		
 	// TODO - stacking/composition binary operators to add/subtract labels. 
 	// Fit this one, fit the next one on label and prediction difference. 

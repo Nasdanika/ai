@@ -12,6 +12,7 @@ import org.nasdanika.ai.FittedPredictor;
 import org.nasdanika.ai.FittedPredictor.Fitter;
 import org.nasdanika.ai.smile.MLPPredictorFitter;
 import org.nasdanika.ai.smile.OLSPredictorFitter;
+import org.nasdanika.ai.smile.OLSRecursivePredictorFitter;
 import org.nasdanika.ai.smile.RandomForestPredictorFitter;
 import org.nasdanika.ai.smile.RegressionTreePredictorFitter;
 
@@ -101,8 +102,49 @@ public class TestRegression {
 		
 		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
 		System.out.println(prediction[0]);
-	}	
+	}
 	
+	
+	@Test
+	public void testOLSRecursiveDoubleFitter() {
+		OLSRecursivePredictorFitter fitter = new OLSRecursivePredictorFitter();
+		
+		double[][] data = {
+			{ 1, 2, 3, 4.1, 5, 6, 7 },
+			{ 2, 3, 4, 4.9, 6, 7, 8 },
+			{ 3, 4, 5, 6.1, 7, 8, 9 },
+			{ 4, 5, 6, 6.9, 8, 9, 10 },
+			{ 5, 6, 7, 8.1, 9, 10, 11 },			
+			{ 6, 7, 8, 9.1, 10, 11, 12 },			
+			{ 7, 8, 9.1, 10, 11, 12, 13 },			
+			{ 8, 9.1, 10, 11, 12, 13, 14 }			
+		};				
+		
+		int labels = 3;
+
+		List<Object> dataList = org.assertj.core.util.Arrays.asList(data);
+		FittedPredictor<double[], double[], Double> predictor = fitter.fit(
+				dataList, 
+				e -> { 
+					double[] s = (double[]) e;
+					double[] f = new double[s.length - labels];
+					System.arraycopy(s, 0, f, 0, f.length);
+					return f;
+				},
+				e -> { 
+					double[] s = (double[]) e;
+					double[] l = new double[labels];
+					System.arraycopy(s, s.length - labels, l, 0, l.length);
+					return l;
+				});		
+		
+		System.out.println(predictor.getError());
+		
+		double[] prediction = predictor.predict(new double[] { 6, 7, 8, 9 });
+		System.out.println(prediction[0]);		
+	}
+	
+		
 	@Test
 	public void testOLSPredictorFitterAdapt() {
 		Map<String,Double> ageMap = Map.of(

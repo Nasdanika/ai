@@ -1,35 +1,28 @@
 package org.nasdanika.ai.math;
 
-import java.util.function.Function;
+import java.util.List;
 
+import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-import org.apache.commons.math3.fitting.WeightedObservedPoints;
-import org.nasdanika.ai.AbstractDoubleFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
 
 /**
  * Features and labels of size 1 - only the first element is taken
  */
-public class PolynomialPredictorFitter extends AbstractDoubleFitter {
+public class PolynomialPredictorFitter extends AbstractUnivariateFunctionPredictorFitter {
+	
+	private int degree;
+
+	public PolynomialPredictorFitter(int degree) {
+		this.degree = degree;
+	}
 
 	@Override
-	protected Function<double[][], double[][]> fit(double[][] features, double[][] labels) {
-		WeightedObservedPoints wobs = new WeightedObservedPoints();
-		for (int i = 0; i < features.length; ++i) {
-			wobs.add(features[i][0], labels[i][0]);
-		}
-		
-		PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
-		double[] params = fitter.fit(wobs.toList());
-		PolynomialFunction func = new PolynomialFunction(params);
-		
-		return input -> {
-			double[][] output = new double[input.length][];
-			for (int i = 0; i < input.length; ++i) {
-				output[i] = new double[] { func.value(input[i][0]) };
-			}
-			return output;
-		};
+	protected UnivariateFunction fit(List<WeightedObservedPoint> points) {
+		PolynomialCurveFitter fitter = PolynomialCurveFitter.create(degree);
+		double[] params = fitter.fit(points);
+		return new PolynomialFunction(params);
 	}
 	
 }
