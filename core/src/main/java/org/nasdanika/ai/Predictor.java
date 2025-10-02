@@ -1,12 +1,10 @@
 package org.nasdanika.ai;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -29,32 +27,19 @@ public interface Predictor<F,L> {
 	 * Batch prediction
 	 */
 	default List<Sample<F, L>> predict(Collection<F> input) {
-		return predictAsync(input).block();
+		return predictAsync(Flux.fromIterable(input)).block();
 	}
 	
 	/**
 	 * Asynchronous batch generation
 	 */
-	default Mono<List<Sample<F, L>>> predictAsync(Collection<F> input) {
-		List<Mono<Entry<F,L>>> monos = input
-			.stream()
-			.map(ie -> {
+	default Mono<List<Sample<F, L>>> predictAsync(Flux<F> input) {
+		return input
+			.flatMap(ie -> {
 				Mono<L> embMono = predictAsync(ie);
-				return embMono.map(emb -> Map.entry(ie, emb));
+				return embMono.map(emb -> new Sample<>(ie, emb));
 			})
-			.toList();
-		
-		return Mono.zip(monos, this::combine);
-	}
-		
-	private List<Sample<F, L>> combine(Object[] elements) {
-		List<Sample<F, L>> ret = new ArrayList<>();
-		for (Object el: elements) {
-			@SuppressWarnings("unchecked")
-			Entry<F,L> e = (Entry<F,L>) el;
-			ret.add(new Sample<>(e.getKey(), e.getValue()));
-		}		
-		return ret;
+			.collectList();
 	}
 	
 	default <G> Predictor<G,L> adaptFeature(Function<G,F> featureMapper) {

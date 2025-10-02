@@ -38,7 +38,11 @@ public class TestFitting {
 		wobs.add(4, 5);
 		wobs.add(5, 6);
 				
-		FittedPredictor<double[], double[], Double> predictor = ppf.fit(wobs.toList(), p -> new double[] { p.getX() }, p -> new double[] { p.getY(), p.getY() + 10 });		
+		FittedPredictor<double[], double[], Double> predictor = ppf.fit(
+				wobs.toList(), 
+				p -> new double[] { p.getX() }, 
+				p -> new double[] { p.getY(), p.getY() + 10 });
+		
 		System.out.println(predictor.getError());
 		
 		double[] prediction = predictor.predict(new double[] { 6.0 });				

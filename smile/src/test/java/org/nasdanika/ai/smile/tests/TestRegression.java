@@ -182,8 +182,7 @@ public class TestRegression {
 		
 		double[] prediction = predictor.predict(new double[] { 6, 7, 8, 9 });
 		System.out.println(prediction[0]);		
-	}
-	
+	}	
 		
 	@Test
 	public void testOLSPredictorFitterAdapt() {

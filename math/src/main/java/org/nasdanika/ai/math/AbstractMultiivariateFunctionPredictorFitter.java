@@ -5,9 +5,6 @@ import java.util.function.Function;
 import org.apache.commons.math3.analysis.MultivariateFunction;
 import org.nasdanika.ai.AbstractMapReduceDoubleFitter;
 
-/**
- * Features and labels of size 1 - only the first element is taken
- */
 public abstract class AbstractMultiivariateFunctionPredictorFitter extends AbstractMapReduceDoubleFitter {
 	
 	protected abstract MultivariateFunction fitFunction(double[][] features, double[] labels);

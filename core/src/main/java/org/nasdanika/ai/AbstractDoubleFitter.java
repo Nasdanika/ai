@@ -91,11 +91,6 @@ public abstract class AbstractDoubleFitter implements FittedPredictor.Fitter<dou
 				}
 				return ret;
 			}
-			
-			@Override
-			public Mono<List<Sample<double[], double[]>>> predictAsync(Collection<double[]> input) {
-				return Mono.fromSupplier(() -> predict(input));
-			}
 
 			@Override
 			public Mono<double[]> predictAsync(double[] input) {
