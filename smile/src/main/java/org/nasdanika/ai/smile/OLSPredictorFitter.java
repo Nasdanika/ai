@@ -1,5 +1,6 @@
 package org.nasdanika.ai.smile;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 import org.nasdanika.ai.AbstractMapReduceDoubleFitter;
@@ -18,8 +19,7 @@ public class OLSPredictorFitter extends AbstractMapReduceDoubleFitter {
 	protected Function<double[][], double[]> fit(double[][] features, double[] labels) {
 		double[][] data = new double[features.length][];
 		for (int i = 0; i < features.length; ++i) {
-			data[i] = new double[features[i].length + 1];
-			System.arraycopy(features[i], 0, data[i], 0, features[i].length);
+			data[i] = Arrays.copyOf(features[i], features[i].length + 1);
 			data[i][features[i].length] = labels[i];
 		}
 		

@@ -1,6 +1,7 @@
 package org.nasdanika.ai;
 
 import java.util.Collection;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
@@ -13,6 +14,15 @@ import reactor.core.publisher.Mono;
  * @param <E>
  */
 public interface FittedPredictor<F,L,E> extends Predictor<F,L> {
+	
+	interface ErrorComputer<F,L,E> {
+		
+		<S> E computeError(Predictor<F,L> predictor, 
+				Collection<S> samples, 
+				Function<S, F> featureMapper,
+				Function<S, L> labelMapper);
+		
+	}
 	
 	interface Fitter<F,L,E> {
 		
@@ -146,6 +156,128 @@ public interface FittedPredictor<F,L,E> extends Predictor<F,L> {
 			};
 			
 		}	
+		
+		/**
+		 * Composes two predictors by fitting this one, then computing label difference between this predictor predictions and 
+		 * labels and fitting the next one with the difference. 
+		 * Prediction is done by computing prediction for this one, then the other and adding the two together.
+		 * @param other
+		 * @param add
+		 * @param subtract
+		 * @return
+		 */
+		default Fitter<F,L,E> compose(
+				Fitter<F,L,E> other, 
+				BinaryOperator<L> add, 
+				BinaryOperator<L> subtract,
+				ErrorComputer<F, L, E> errorComputer) {
+			
+			return new Fitter<F, L, E>() {
+				
+				@Override
+				public <S> FittedPredictor<F, L, E> fit(
+						Collection<S> samples, 
+						Function<S, F> featureMapper,
+						Function<S, L> labelMapper) {
+					
+					FittedPredictor<F,L,E> thisPredictor = Fitter.this.fit(samples, featureMapper, labelMapper);					
+					FittedPredictor<F, L, E> otherPredictor = other.fit(
+							samples, 
+							featureMapper, 
+							s -> {
+								L label = labelMapper.apply(s);
+								L prediction = thisPredictor.predict(featureMapper.apply(s));
+								return subtract.apply(label, prediction);
+							});
+										
+					return new FittedPredictor<F,L,E>() {
+						
+						@Override
+						public L predict(F feature) {
+							L thisPrediction = thisPredictor.predict(feature);
+							L otherPrediction = otherPredictor.predict(feature);
+							return add.apply(thisPrediction, otherPrediction);
+						}
+
+						@Override
+						public Mono<L> predictAsync(F input) {
+							Mono<L> thisPrediction = thisPredictor.predictAsync(input);
+							Mono<L> otherPrediction = otherPredictor.predictAsync(input);							
+							return Mono.zip(thisPrediction, otherPrediction).map(tuple -> add.apply(tuple.getT1(), tuple.getT2()));
+						}
+
+						@Override
+						public E getError() {
+							return errorComputer == null ? null : errorComputer.computeError(this, samples, featureMapper, labelMapper);
+						}
+						
+					};
+				}
+				
+				@Override
+				public <S> Mono<FittedPredictor<F, L, E>> fitAsync(
+						Flux<S> samples, 
+						Function<S, Mono<F>> featureMapper,
+						Function<S, Mono<L>> labelMapper) {
+					
+					throw new UnsupportedOperationException("Implement me!");
+					
+//					Collection<S> samplesSoFar = Collections.synchronizedCollection(new ArrayList<>());
+//					samples.subscribe(samplesSoFar::add);
+//					
+//					Mono<FittedPredictor<F,L,E>> thisPredictorMono = Fitter.this.fitAsync(samples, featureMapper, labelMapper);		
+//					Mono<FittedPredictor<F, L, E>> otherPredictorMono = thisPredictorMono.flatMap(thisPredictor -> {
+//						otherPredictorMono = other.fitAsync(
+//								samples, 
+//								featureMapper, 
+//								s -> {
+//									Mono<L> label = labelMapper.apply(s);
+//									Mono<L> prediction = featureMapper.apply(s).flatMap(f -> thisPredictor.predictAsync(f));   thisPredictor.predictAsync();
+//									return subtract.apply(label, prediction);
+//								});
+//						
+//					});
+//					
+//					return Mono.zip(thisPredictorMono, otherPredictorMono, (thisPredictor, otherPredictor) -> {
+//						
+//						return new FittedPredictor<F,L,E>() {
+//							
+//							@Override
+//							public L predict(F feature) {
+//								L thisPrediction = thisPredictor.predict(feature);
+//								L otherPrediction = otherPredictor.predict(feature);
+//								return add.apply(thisPrediction, otherPrediction);
+//							}
+//
+//							@Override
+//							public Mono<L> predictAsync(F input) {
+//								Mono<L> thisPrediction = thisPredictor.predictAsync(input);
+//								Mono<L> otherPrediction = otherPredictor.predictAsync(input);							
+//								return Mono.zip(thisPrediction, otherPrediction).map(tuple -> add.apply(tuple.getT1(), tuple.getT2()));
+//							}
+//
+//							@Override
+//							public E getError() {
+//								return errorComputer == null ? null : errorComputer.computeError(this, samplesSoFar, featureMapper, labelMapper);
+//							}
+//							
+//						};						
+//						
+//					});					
+				}				
+				
+			};
+			
+		}
+			
+//		default Fitter<F,L,E> composeAsync(
+//				Fitter<F,L,E> other, 
+//				BiFunction<L,L,Mono<L>> add, 
+//				BiFunction<L,L,Mono<L>> subtract,
+//				ErrorComputer<F, L, E> errorComputer) {
+//
+//			
+//		}
 				
 	}	
 	
@@ -236,8 +368,6 @@ public interface FittedPredictor<F,L,E> extends Predictor<F,L> {
 			
 		};
 		
-	}	
-	
-	// TODO Adapt error
+	}		
 
 }

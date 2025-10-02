@@ -8,6 +8,7 @@ import java.util.function.Function;
 import org.assertj.core.util.Arrays;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.nasdanika.ai.AbstractDoubleFitter;
 import org.nasdanika.ai.FittedPredictor;
 import org.nasdanika.ai.FittedPredictor.Fitter;
 import org.nasdanika.ai.smile.MLPPredictorFitter;
@@ -104,7 +105,46 @@ public class TestRegression {
 		System.out.println(prediction[0]);
 	}
 	
-	
+	@Test
+	public void testOLSPredictorFitterComposition() {
+		double[][] data = createData();
+		List<Object> dataList = Arrays.asList(data);
+		OLSPredictorFitter olspf = new OLSPredictorFitter();
+		
+		Fitter<double[], double[], Double> other = new AbstractDoubleFitter() {
+			
+			@Override
+			protected Function<double[][], double[][]> fit(double[][] features, double[][] labels) {
+				return input -> {
+					double[][] result = new double[labels.length][];
+					for (int i = 0; i < result.length; ++i) {
+						result[i] = new double[labels[i].length];
+						result[i][0] = 0.22;
+					}
+					return result;
+				};
+			}
+			
+		};
+		
+		FittedPredictor.Fitter<double[], double[], Double> composite = olspf.compose(other);
+		
+		FittedPredictor<double[], double[], Double> predictor = composite.fit(
+				dataList, 
+				e -> { 
+					double[] s = (double[]) e;
+					double[] f = new double[s.length -1];
+					System.arraycopy(s, 0, f, 0, f.length);
+					return f;
+				},
+				e -> new double[] { ((double[]) e)[((double[]) e).length - 1] });		
+		
+		System.out.println(predictor.getError());
+		
+		double[] prediction = predictor.predict(new double[] { 6, 7, 8 });
+		System.out.println(prediction[0]);
+	}
+		
 	@Test
 	public void testOLSRecursiveDoubleFitter() {
 		OLSRecursivePredictorFitter fitter = new OLSRecursivePredictorFitter();

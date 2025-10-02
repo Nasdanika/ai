@@ -1,9 +1,14 @@
 package org.nasdanika.ai;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
+
+import org.nasdanika.ai.FittedPredictor.ErrorComputer;
+import org.nasdanika.ai.FittedPredictor.Fitter;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -106,7 +111,7 @@ public abstract class AbstractDoubleFitter implements FittedPredictor.Fitter<dou
 		
 	}
 	
-	protected Double computeError(
+	protected static Double computeError(
 			Function<double[][],double[][]> predictor, 
 			double[][] features,
 			double[][] labels) {
@@ -143,7 +148,61 @@ public abstract class AbstractDoubleFitter implements FittedPredictor.Fitter<dou
 			}
 			return output;
 		};		
-	}	
+	}
+	
+	public Fitter<double[], double[], Double> compose(Fitter<double[], double[], Double> other) {
+		BinaryOperator<double[]> add = (a,b) -> {
+			double[] aCopy = Arrays.copyOf(a, a.length);
+			for (int i = 0; i < a.length; ++i) {
+				aCopy[i] += b[i];
+			}
+			return aCopy;
+		};
+		
+		BinaryOperator<double[]> subtract = (a,b) -> {
+			double[] aCopy = Arrays.copyOf(a, a.length);
+			for (int i = 0; i < a.length; ++i) {
+				aCopy[i] -= b[i];
+			}
+			return aCopy;			
+		};
+		
+		ErrorComputer<double[], double[], Double> errorComputer = new ErrorComputer<double[], double[], Double>() {
+
+			@Override
+			public <S> Double computeError(
+					Predictor<double[], double[]> predictor, 
+					Collection<S> samples,
+					Function<S, double[]> featureMapper, 
+					Function<S, double[]> labelMapper) {
+								
+				double[][] features = new double[samples.size()][];				
+				double[][] labels = new double[samples.size()][];
+				
+				int idx = 0;
+				for (S sample: samples) {
+					features[idx] = featureMapper.apply(sample);
+					labels[idx++] = labelMapper.apply(sample);
+				}				
+				
+				Function<double[][], double[][]> errorPredictor = input -> {
+					double[][] output = new double[input.length][];
+					for (int i = 0; i < input.length; ++i) {
+						output[i] = predictor.predict(input[i]);
+					}
+					return output;
+				};
+				return AbstractDoubleFitter.computeError(
+						errorPredictor, 
+						features, 
+						labels);
+			}
+			
+		};
+		
+		return compose(other, add, subtract, errorComputer);
+	}
+	
 		
 	// TODO - stacking/composition binary operators to add/subtract labels. 
 	// Fit this one, fit the next one on label and prediction difference. 

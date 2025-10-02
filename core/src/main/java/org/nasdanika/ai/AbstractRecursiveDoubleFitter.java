@@ -1,5 +1,6 @@
 package org.nasdanika.ai;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 /**
@@ -22,8 +23,7 @@ public abstract class AbstractRecursiveDoubleFitter extends AbstractDoubleFitter
 				if (i == 0) {
 					pFeatures[j] = features[j];
 				} else {
-					pFeatures[j] = new double[features[j].length + i];
-					System.arraycopy(features[j], 0, pFeatures[j], 0, features[j].length);
+					pFeatures[j] = Arrays.copyOf(features[j], features[j].length + i);
 					System.arraycopy(labels[j], 0, pFeatures[j], features[j].length, i);
 				}
 			}
@@ -39,8 +39,7 @@ public abstract class AbstractRecursiveDoubleFitter extends AbstractDoubleFitter
 				} else {
 					double[][] pInput = new double[input.length][];
 					for (int j = 0; j < input.length; ++j) {
-						pInput[j] = new double[input[j].length + i];
-						System.arraycopy(input[j], 0, pInput[j], 0, input[j].length);
+						pInput[j] = Arrays.copyOf(input[j], input[j].length + i);
 						for (int k = 0; k < i; ++k) {
 							pInput[j][input[j].length + k] = predictions[k][j];
 						}	
