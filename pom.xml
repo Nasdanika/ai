@@ -207,6 +207,7 @@
 		<module>drawio</module>
 		<module>math</module>
 		<module>smile</module>
+		<module>http</module>
 	</modules>	
 
 	<distributionManagement>
