@@ -77,8 +77,7 @@ public class TestHttp {
 		DisposableServer server = HttpServer
 		  .create()
 		  .route(builder::buildRoutes)
-		  .bindNow();
-		
+		  .bindNow();		
 		
 	    URI resolvedUri = new URI("http://localhost:" + server.port() + "/").resolve("/test-chat/chat");			
 		Desktop.getDesktop().browse(resolvedUri);

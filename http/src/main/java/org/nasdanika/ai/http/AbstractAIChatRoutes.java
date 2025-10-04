@@ -37,7 +37,11 @@ public abstract class AbstractAIChatRoutes extends AbstractTelemetryChatRoutes {
 
 	protected abstract Mono<List<Chat.Message>> generateChatRequestMessages(String chatId, String question, JSONObject config);
 
-	protected abstract Mono<String> generateResponseContent(String chatId, String question, List<? extends Chat.ResponseMessage> responses, JSONObject config);
+	protected abstract Mono<String> generateResponseContent(
+			String chatId, 
+			String question, 
+			List<? extends Chat.ResponseMessage> responses, 
+			JSONObject config);
 	
 	@Override
 	protected final Mono<String> chatContent(String chatId, String question, JSONObject config) {
