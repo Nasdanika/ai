@@ -402,7 +402,7 @@ public class TestAI {
 		System.out.println("Max input:\t" + chat.getMaxInputTokens());
 		System.out.println("Max output:\t" + chat.getMaxOutputTokens());
         
-    	List<ResponseMessage> responses = chat.chat(
+    	List<? extends ResponseMessage> responses = chat.chat(
     		Chat.Role.system.createMessage("You are a helpful assistant. You will talk like a pirate."),
     		Chat.Role.user.createMessage("Can you help me?"),
     		Chat.Role.system.createMessage("Of course, me hearty! What can I do for ye?"),
@@ -545,7 +545,7 @@ public class TestAI {
 		System.out.println("Max input:\t" + chat.getMaxInputTokens());
 		System.out.println("Max output:\t" + chat.getMaxOutputTokens());
         
-    	List<ResponseMessage> responses = chat.chat(
+    	List<? extends ResponseMessage> responses = chat.chat(
     		Chat.Role.user.createMessage("Describe this image").addImage(new File("llama.png"))
     	);
     	
@@ -890,7 +890,7 @@ public class TestAI {
 					messages.add(Chat.Role.system.createMessage(messageBuilder.toString()));
 				}		
 				
-		    	List<ResponseMessage> responses = chat.chat(messages);		    			    	
+		    	List<? extends ResponseMessage> responses = chat.chat(messages);		    			    	
 		    	
 		    	for (ResponseMessage response: responses) {
 		    		System.out.println(MarkdownHelper.INSTANCE.markdownToHtml(response.getContent()));

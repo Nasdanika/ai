@@ -195,7 +195,7 @@ public class OllamaChat implements Chat {
 	}
 
 	@Override
-	public Mono<List<ResponseMessage>> chatAsync(List<Message> messages) {
+	public Mono<List<? extends ResponseMessage>> chatAsync(List<Message> messages) {
 		return Mono.deferContextual(contextView -> {
 			Context parentContext = contextView.getOrDefault(Context.class, Context.current());
 		
