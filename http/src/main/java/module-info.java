@@ -7,5 +7,8 @@ module org.nasdanika.ai.http {
 	requires reactor.netty.http;
 	requires io.netty.buffer;
 	requires io.opentelemetry.context;
+	requires transitive org.nasdanika.html.bootstrap;
+	requires transitive org.nasdanika.html.alpinejs;
+	requires transitive org.nasdanika.ai;
 		
 }
