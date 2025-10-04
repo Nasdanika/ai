@@ -5,17 +5,78 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.module.ModuleDescriptor.Version;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
 import reactor.core.publisher.Mono;
 
 public interface Chat extends Model {
+	
+	public static final Chat ECHO = new Chat() {
+
+		@Override
+		public int getMaxInputTokens() {
+			return Integer.MAX_VALUE;
+		}
+
+		@Override
+		public String getProvider() {
+			return "Nasdanika";
+		}
+
+		@Override
+		public String getName() {
+			return "Echo";
+		}
+
+		@Override
+		public String getVersion() {
+			Optional<Version> moduleVersion = getClass().getModule().getDescriptor().version();
+			return moduleVersion == null ? new Date().toString() : moduleVersion.toString();
+		}
+
+		@Override
+		public Mono<List<? extends ResponseMessage>> chatAsync(List<Message> messages) {
+			List<? extends ResponseMessage> responseMessages = messages.stream().map(m ->  new ResponseMessage() {
+				
+				@Override
+				public String getRole() {
+					return Role.assistant.name();
+				}
+				
+				@Override
+				public String getContent() {
+					return m.getContent();
+				}
+				
+				@Override
+				public String getRefusal() {
+					return null;
+				}
+				
+				@Override
+				public String getFinishReason() {
+					return "stop";
+				}
+			})
+			.toList();
+			return Mono.just(responseMessages);
+		}
+
+		@Override
+		public int getMaxOutputTokens() {
+			return Integer.MAX_VALUE;
+		}
+		
+	};
 	
 	/**
 	 * Chat requirement.
@@ -155,17 +216,17 @@ public interface Chat extends Model {
 		
 	}
 	
-	Mono<List<ResponseMessage>> chatAsync(List<Message> messages);
+	Mono<List<? extends ResponseMessage>> chatAsync(List<Message> messages);
 	
-	default Mono<List<ResponseMessage>> chatAsync(Message... messages) {
+	default Mono<List<? extends ResponseMessage>> chatAsync(Message... messages) {
 		return chatAsync(Arrays.asList(messages));
 	}		
 	
-	default List<ResponseMessage> chat(List<Message> messages) {
+	default List<? extends ResponseMessage> chat(List<Message> messages) {
 		return chatAsync(messages).block();
 	}
 		
-	default List<ResponseMessage> chat(Message... messages) {
+	default List<? extends ResponseMessage> chat(Message... messages) {
 		return chat(Arrays.asList(messages));
 	}	
 	

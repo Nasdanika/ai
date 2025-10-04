@@ -23,7 +23,7 @@ public class ChatImageNarrator implements ImageNarrator {
 
 	@Override
 	public Mono<String> generateAsync(BufferedImage input) {
-    	Mono<List<ResponseMessage>> responses = chat.chatAsync(
+    	Mono<List<? extends ResponseMessage>> responses = chat.chatAsync(
     		Chat.Role.user.createMessage(prompt).addImage(input)
     	);
         	
@@ -42,7 +42,7 @@ public class ChatImageNarrator implements ImageNarrator {
 	
 	@Override
 	public String generate(BufferedImage input) {        
-    	List<ResponseMessage> responses = chat.chat(
+    	List<? extends ResponseMessage> responses = chat.chat(
     		Chat.Role.user.createMessage(prompt).addImage(input)
     	);
     	
