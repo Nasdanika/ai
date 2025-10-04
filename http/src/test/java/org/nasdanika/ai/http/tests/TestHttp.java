@@ -4,6 +4,7 @@ import java.awt.Desktop;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -11,7 +12,9 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.nasdanika.ai.http.AbstractChatRoutes;
+import org.nasdanika.ai.Chat;
+import org.nasdanika.ai.Chat.ResponseMessage;
+import org.nasdanika.ai.http.AbstractAIChatRoutes;
 import org.nasdanika.ai.http.ChatBuilder;
 import org.nasdanika.html.HTMLPage;
 import org.nasdanika.html.Input;
@@ -22,7 +25,6 @@ import org.nasdanika.http.ReflectiveHttpServerRouteBuilder;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
-import reactor.netty.http.server.HttpServerRequest;
 
 public class TestHttp {
 	
@@ -36,12 +38,7 @@ public class TestHttp {
 	@Test
 	public void testChatServer() throws Exception {
 		ReflectiveHttpServerRouteBuilder builder = new ReflectiveHttpServerRouteBuilder();
-		builder.addTargets("/test-chat/", new AbstractChatRoutes() {
-
-			@Override
-			protected Mono<String> chatContent(HttpServerRequest request, String chatId, String question, JSONObject config) {
-				return Mono.just("Here we go [" + chatId +"]: " + question + " | " + config);
-			}
+		builder.addTargets("/test-chat/", new AbstractAIChatRoutes(null, Chat.ECHO) {
 			
 			@Override
 			protected Object getConfigurator() {
@@ -56,6 +53,23 @@ public class TestHttp {
 				JSONObject jsonConfig = super.getConfig();
 				jsonConfig.put("test", "123");
 				return jsonConfig;
+			}
+
+			@Override
+			protected Mono<List<org.nasdanika.ai.Chat.Message>> generateChatRequestMessages(
+					String chatId,
+					String question,
+					JSONObject config) {
+				return Mono.just(List.of(Chat.Role.user.createMessage(question)));
+			}
+
+			@Override
+			protected Mono<String> generateResponseContent(
+					String chatId, 
+					String question,
+					List<? extends ResponseMessage> responses, 
+					JSONObject config) {
+				return Mono.just("Here we go [" + chatId +"]: " + question + " | " + responses.get(0).getContent() + " | " + config);
 			}
 			
 		});

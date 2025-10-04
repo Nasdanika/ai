@@ -27,14 +27,14 @@ public abstract class AbstractTelemetryChatRoutes extends AbstractChatRoutes {
 	}
 	
 	@Override
-	protected Mono<Message> chat(HttpServerRequest request, String chatId, String question, JSONObject config) {
+	protected final Mono<Message> chat(HttpServerRequest request, String chatId, String question, JSONObject config) {
 		if (telemetryFilter == null) {
 			return chat(chatId, question, config);
 		}
 		return telemetryFilter.filter(request, chat(chatId, question, config));
 	}
 	
-	protected Mono<HTMLPage> buildPage(HttpServerRequest request) {
+	protected final Mono<HTMLPage> buildPage(HttpServerRequest request) {
 		if (telemetryFilter == null) {
 			return super.buildPage(request);
 		}
@@ -46,5 +46,14 @@ public abstract class AbstractTelemetryChatRoutes extends AbstractChatRoutes {
 	}
 	
 	protected abstract Mono<String> chatContent(String chatId, String question, JSONObject config);
+	
+	/**
+	 * Use chatContent(chatId,question,config)
+	 */
+	@Override	
+	@Deprecated 
+	protected final Mono<String> chatContent(HttpServerRequest request, String chatId, String question, JSONObject config) {
+		throw new UnsupportedOperationException("Use chatContent(chatId,question,config)");
+	}
 	
 }
