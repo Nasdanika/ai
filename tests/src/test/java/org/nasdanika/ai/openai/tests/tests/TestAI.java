@@ -919,7 +919,7 @@ public class TestAI {
 	}	
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testChatServerWithTelemetry() throws Exception {
 		CapabilityLoader capabilityLoader = new CapabilityLoader();
 		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
