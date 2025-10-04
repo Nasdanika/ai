@@ -11,6 +11,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.json.JSONObject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.Chat.ResponseMessage;
@@ -36,6 +37,7 @@ public class TestHttp {
 	}
 	
 	@Test
+	@Disabled
 	public void testChatServer() throws Exception {
 		ReflectiveHttpServerRouteBuilder builder = new ReflectiveHttpServerRouteBuilder();
 		builder.addTargets("/test-chat/", new AbstractAIChatRoutes(null, Chat.ECHO) {
@@ -59,7 +61,8 @@ public class TestHttp {
 			protected Mono<List<org.nasdanika.ai.Chat.Message>> generateChatRequestMessages(
 					String chatId,
 					String question,
-					JSONObject config) {
+					JSONObject config, 
+					JSONObject context) {
 				return Mono.just(List.of(Chat.Role.user.createMessage(question)));
 			}
 
@@ -68,8 +71,9 @@ public class TestHttp {
 					String chatId, 
 					String question,
 					List<? extends ResponseMessage> responses, 
-					JSONObject config) {
-				return Mono.just("Here we go [" + chatId +"]: " + question + " | " + responses.get(0).getContent() + " | " + config);
+					JSONObject config, 
+					JSONObject context) {
+				return Mono.just("Here we go [" + chatId +"]: " + question + " | " + responses.get(0).getContent() + " | " + config + " | " + context);
 			}
 			
 		});

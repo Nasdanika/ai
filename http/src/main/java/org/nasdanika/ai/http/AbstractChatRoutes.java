@@ -51,11 +51,27 @@ public abstract class AbstractChatRoutes extends ChatBuilder {
 		
 	}
 	
-	protected Mono<Message> chat(HttpServerRequest request, String chatId, String question, JSONObject config) {
-		return chatContent(request, chatId, question, config).map(c -> new Message(c, Color.INFO));
+	protected Mono<Message> chat(
+			HttpServerRequest request, 
+			String chatId, 
+			String question, 
+			JSONObject config,
+			JSONObject context) {
+		
+		return chatContent(
+				request, 
+				chatId, 
+				question, 
+				config,
+				context).map(c -> new Message(c, Color.INFO));
 	}
 	
-	protected abstract Mono<String> chatContent(HttpServerRequest request, String chatId, String question, JSONObject config);	
+	protected abstract Mono<String> chatContent(
+			HttpServerRequest request, 
+			String chatId, 
+			String question, 
+			JSONObject config, 
+			JSONObject context);	
 	
 	@Route
 	public NettyOutbound getChat(
@@ -94,7 +110,7 @@ public abstract class AbstractChatRoutes extends ChatBuilder {
 		return response
 				.header("Content-Type", "application/json")
 				.sendString(requestJSON
-						.flatMap(json -> chat(request, chatId, json.getString(TEXT_KEY), json.getJSONObject(CONFIG_KEY)))
+						.flatMap(json -> chat(request, chatId, json.getString(TEXT_KEY), json.getJSONObject(CONFIG_KEY), json.getJSONObject(CONTEXT_KEY)))
 						.map(msg -> {
 							JSONObject jResponse = new JSONObject();
 							jResponse.put("content", msg.content());

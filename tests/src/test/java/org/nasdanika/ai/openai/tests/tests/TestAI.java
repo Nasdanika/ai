@@ -3,11 +3,13 @@ package org.nasdanika.ai.openai.tests.tests;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.Writer;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -18,9 +20,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.CachingImageNarrator;
 import org.nasdanika.ai.Chat;
@@ -35,6 +42,7 @@ import org.nasdanika.ai.TextFloatVectorEmbeddingModel;
 import org.nasdanika.ai.TextFloatVectorEmbeddingResource;
 import org.nasdanika.ai.TextFloatVectorEmbeddingResourceContents;
 import org.nasdanika.ai.TextFloatVectorEncodingChunkingEmbeddingModel;
+import org.nasdanika.ai.http.AbstractAIChatRoutes;
 import org.nasdanika.capability.CapabilityLoader;
 import org.nasdanika.capability.CapabilityProvider;
 import org.nasdanika.capability.ServiceCapabilityFactory;
@@ -42,6 +50,11 @@ import org.nasdanika.capability.ServiceCapabilityFactory.Requirement;
 import org.nasdanika.common.LoggerProgressMonitor;
 import org.nasdanika.common.MarkdownHelper;
 import org.nasdanika.common.ProgressMonitor;
+import org.nasdanika.html.Input;
+import org.nasdanika.html.InputType;
+import org.nasdanika.html.alpinejs.AlpineJs;
+import org.nasdanika.http.ReflectiveHttpServerRouteBuilder;
+import org.nasdanika.http.TelemetryFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +71,8 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.DisposableServer;
+import reactor.netty.http.server.HttpServer;
 
 public class TestAI {
 	
@@ -901,6 +916,95 @@ public class TestAI {
 		} finally {
 			capabilityLoader.close(progressMonitor);
 		}		
+	}	
+	
+	@Test
+//	@Disabled
+	public void testChatServerWithTelemetry() throws Exception {
+		CapabilityLoader capabilityLoader = new CapabilityLoader();
+		ProgressMonitor progressMonitor = new LoggerProgressMonitor(LOGGER);
+		OpenTelemetry openTelemetry = capabilityLoader.loadOne(ServiceCapabilityFactory.createRequirement(OpenTelemetry.class), progressMonitor);
+		Tracer tracer = openTelemetry.getTracer(TestAI.class.getName() + ".testChatServerWithTelemetry");
+		TelemetryFilter telemetryFilter = new TelemetryFilter(
+				tracer, 
+				openTelemetry.getPropagators().getTextMapPropagator(), 
+				(k, v) -> System.out.println(k + ": " + v), 
+				true);
+		
+		Chat.Requirement cReq = new Chat.Requirement("OpenAI", "gpt-4o", null);
+		Requirement<Chat.Requirement, Chat> chatRequirement = ServiceCapabilityFactory.createRequirement(Chat.class, null, cReq);			
+		Chat chat = capabilityLoader.loadOne(chatRequirement, progressMonitor);
+				
+		ReflectiveHttpServerRouteBuilder builder = new ReflectiveHttpServerRouteBuilder();
+		builder.addTargets("/test-chat/", new AbstractAIChatRoutes(telemetryFilter, chat) {
+			
+			@Override
+			protected Object getConfigurator() {
+				Input text = getBootstrapFactory().getHTMLFactory().input(InputType.text);
+				AlpineJs<Input> aText = getAlpineJsFactory().from(text);
+				aText.model("config.test");
+				return text;
+			}
+			
+			@Override
+			protected JSONObject getConfig() {
+				JSONObject jsonConfig = super.getConfig();
+				jsonConfig.put("chat-provider", chat.getProvider());
+				jsonConfig.put("chat-model", chat.getName());
+				return jsonConfig;
+			}
+
+			@Override
+			protected Mono<List<org.nasdanika.ai.Chat.Message>> generateChatRequestMessages(
+					String chatId,
+					String question,
+					JSONObject config,
+					JSONObject context) {
+				return Mono.just(List.of(
+					Chat.Role.system.createMessage("You are a helpful assistant. You you will be provided a user question. Answer in Markdown format with references to resources you used."),
+					Chat.Role.user.createMessage(question))
+				);
+			}
+
+			@Override
+			protected Mono<String> generateResponseContent(
+					String chatId, 
+					String question,
+					List<? extends ResponseMessage> responses, 
+					JSONObject config,
+					JSONObject context) {
+				String responseContent = responses.get(0).getContent();
+				return Mono.just(MarkdownHelper.INSTANCE.markdownToHtml(responseContent));
+			}
+			
+		});
+
+		DisposableServer server = HttpServer
+		  .create()
+		  .route(builder::buildRoutes)
+		  .bindNow();		
+		
+	    URI resolvedUri = new URI("http://localhost:" + server.port() + "/").resolve("/test-chat/chat");			
+		Desktop.getDesktop().browse(resolvedUri);
+		
+		try (Terminal terminal = TerminalBuilder.builder().system(true).build()) {
+		    LineReader lineReader = LineReaderBuilder
+		            .builder()
+		            .terminal(terminal)
+		            .build();
+		    
+		    String prompt = "http-server>";
+		    while (true) {
+		        String line = null;
+		        line = lineReader.readLine(prompt);
+		        System.out.println("Got: " + line);
+		        if ("exit".equals(line)) {
+		            break;
+		        }
+		    }
+		}
+		server.dispose();
+		server.onDispose().block();		
 	}	
 	
 }

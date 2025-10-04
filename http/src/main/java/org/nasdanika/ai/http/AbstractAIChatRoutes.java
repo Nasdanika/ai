@@ -35,19 +35,24 @@ public abstract class AbstractAIChatRoutes extends AbstractTelemetryChatRoutes {
 		this.chat = chat;
 	}
 
-	protected abstract Mono<List<Chat.Message>> generateChatRequestMessages(String chatId, String question, JSONObject config);
+	protected abstract Mono<List<Chat.Message>> generateChatRequestMessages(
+			String chatId, 
+			String question, 
+			JSONObject config, 
+			JSONObject context);
 
 	protected abstract Mono<String> generateResponseContent(
 			String chatId, 
 			String question, 
 			List<? extends Chat.ResponseMessage> responses, 
-			JSONObject config);
+			JSONObject config, 
+			JSONObject context);
 	
 	@Override
-	protected final Mono<String> chatContent(String chatId, String question, JSONObject config) {
-		return generateChatRequestMessages(chatId, question, config)
+	protected final Mono<String> chatContent(String chatId, String question, JSONObject config, JSONObject context) {
+		return generateChatRequestMessages(chatId, question, config, context)
 			.flatMap(chat::chatAsync)
-			.flatMap(responses -> generateResponseContent(chatId, question, responses, config));
+			.flatMap(responses -> generateResponseContent(chatId, question, responses, config, context));
 	}
 	
 }

@@ -29,6 +29,7 @@ public class ChatBuilder {
 	protected static final String TEXT_KEY = "text";
 	protected static final String MESSAGES_KEY = "messages";
 	protected static final String CONFIG_KEY = "config";
+	protected static final String CONTEXT_KEY = "context";
 	private BootstrapFactory bootstrapFactory = BootstrapFactory.INSTANCE;
 	private AlpineJsFactory alpineJsFactory = AlpineJsFactory.INSTANCE;
 	protected String action;
@@ -89,8 +90,8 @@ public class ChatBuilder {
 		appData
 			.put(MESSAGES_KEY, messagesArray)
 			.put(CONFIG_KEY, getConfig())
-			.put(TEXT_KEY, "");
-		
+			.put(CONTEXT_KEY, getContext())
+			.put(TEXT_KEY, "");		
 		
 		// Chat message cards
 		Tag messageCardHtmlElement = buildMessageCard();				
@@ -195,7 +196,8 @@ public class ChatBuilder {
 				headers: {'Content-Type': 'application/json'},
 				body: JSON.stringify({
 					text: text,
-					config: config
+					config: config,
+					context: context
 				})
 			}).then(response => {
 				if (response.ok) {
@@ -235,6 +237,10 @@ public class ChatBuilder {
 	}
 	
 	protected JSONObject getConfig() {
+		return new JSONObject();
+	}	
+	
+	protected JSONObject getContext() {
 		return new JSONObject();
 	}	
 
