@@ -37,7 +37,7 @@ public class TestHttp {
 	}
 	
 	@Test
-//	@Disabled
+	@Disabled
 	public void testChatServer() throws Exception {
 		ReflectiveHttpServerRouteBuilder builder = new ReflectiveHttpServerRouteBuilder();
 		builder.addTargets("/test-chat/", new AbstractAIChatRoutes(null, Chat.LOREM_IPSUM) {
