@@ -181,7 +181,7 @@ public class ChatBuilder {
 	protected String buildSubmitHandler() {
 		return Util.interpolate("""
 			messages.push({
-				content: text,
+				content: ${userQuestionExpression},
 				style: 'primary'
 			});
 			
@@ -224,8 +224,13 @@ public class ChatBuilder {
 			""",
 			Map.of(
 					"action", action,
-					"fetchError", getFetchError()
+					"fetchError", getFetchError(),
+					"userQuestionExpression", getUserQuestionExpression()					
 			)::get);		
+	}
+	
+	protected String getUserQuestionExpression() {
+		return "'<pre>' + text + '</pre>'";
 	}
 	
 	/**
