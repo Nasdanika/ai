@@ -136,6 +136,7 @@ public class ChatBuilder {
 			}
 		}
 		
+		getAlpineJsFactory().from(textAreaInputGroup.toHTMLElement()).ref("inputGroup"); // for scrolling to		
 		return textAreaInputGroup;
 	}
 	
@@ -204,11 +205,15 @@ public class ChatBuilder {
 					response.json().then(responseJson => {
 						responseMessage.content = responseJson.content;
 						responseMessage.style = responseJson.style;
+						setTimeout(() => {
+								$refs.inputGroup.scrollIntoView({ behavior: 'smooth', block: 'end' });
+							},
+							100);
 					})
 					.catch(error => {
-				    console.error("Error parsing JSON:", error);
-				    responseMessage.content = "Oops! Something went wrong while processing the response.";
-				    responseMessage.style = 'danger';
+					    console.error("Error parsing JSON:", error);
+					    responseMessage.content = "Oops! Something went wrong while processing the response.";
+					    responseMessage.style = 'danger';
 					});
 				} else {
 					responseMessage.content = response.status + ": " + response.statusText;
@@ -221,6 +226,11 @@ public class ChatBuilder {
 			    responseMessage.style = 'danger';
 			});
 			text = '';
+			
+			setTimeout(() => {
+					$refs.inputGroup.scrollIntoView({ behavior: 'smooth', block: 'end' });
+				},
+				100);			
 			""",
 			Map.of(
 					"action", action,
@@ -230,7 +240,7 @@ public class ChatBuilder {
 	}
 	
 	protected String getUserQuestionExpression() {
-		return "'<pre>' + text + '</pre>'";
+		return "'<div style=\"white-space:pre-wrap\">' + text + '</div>'";
 	}
 	
 	/**

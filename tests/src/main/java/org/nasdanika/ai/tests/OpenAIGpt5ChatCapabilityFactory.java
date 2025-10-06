@@ -62,8 +62,8 @@ public class OpenAIGpt5ChatCapabilityFactory extends ServiceCapabilityFactory<Ch
 			PROVIDER,
 			MODEL,
 			null,
-			16385,
-			4096,
+			272000,
+			128000,
 			openTelemetry);
 	}	
 
