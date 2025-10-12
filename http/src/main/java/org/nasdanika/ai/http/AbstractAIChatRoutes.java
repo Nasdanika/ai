@@ -6,6 +6,7 @@ import org.json.JSONObject;
 import org.nasdanika.ai.Chat;
 import org.nasdanika.html.alpinejs.AlpineJsFactory;
 import org.nasdanika.html.bootstrap.BootstrapFactory;
+import org.nasdanika.html.http.AbstractTelemetryChatRoutes;
 import org.nasdanika.http.TelemetryFilter;
 
 import reactor.core.publisher.Mono;

@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.7.0</version>
+	    <version>2025.10.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>smile</artifactId>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>com.github.haifengl</groupId>
             <artifactId>smile-core</artifactId>
-            <version>4.4.1</version>
+            <version>4.4.2</version>
         </dependency>				
 	</dependencies>
 </project>

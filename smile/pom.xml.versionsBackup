@@ -4,15 +4,16 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.10.0</version>
+	    <version>2025.7.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>ollama</artifactId>
+	<artifactId>smile</artifactId>
 	<packaging>jar</packaging>
-	<name>Nasdanika AI Ollama</name>
-	<url>https://docs.nasdanika.org/ai/ollama/index.html</url>
+	<name>Nasdanika AI Smile</name>
+	<description>Nasdanika AI prediction adapters for Smile regression and MLP classes</description>
+	<url>https://docs.nasdanika.org/ai/smile/index.html</url>
     <scm>
-       <url>https://github.com/Nasdanika/ai/tree/main/ollama</url>
+       <url>https://github.com/Nasdanika/ai/tree/main/smile</url>
     </scm>  
 
 	<dependencies>
@@ -22,9 +23,9 @@
 			<version>${project.version}</version>
 		</dependency>
         <dependency>
-            <groupId>org.nasdanika.core</groupId>
-            <artifactId>http</artifactId>
-            <version>${core.version}</version>
-        </dependency>
+            <groupId>com.github.haifengl</groupId>
+            <artifactId>smile-core</artifactId>
+            <version>4.4.1</version>
+        </dependency>				
 	</dependencies>
 </project>

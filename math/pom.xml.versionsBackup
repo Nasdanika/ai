@@ -4,15 +4,16 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.10.0</version>
+	    <version>2025.7.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
-	<artifactId>ollama</artifactId>
+	<artifactId>math</artifactId>
 	<packaging>jar</packaging>
-	<name>Nasdanika AI Ollama</name>
-	<url>https://docs.nasdanika.org/ai/ollama/index.html</url>
+	<name>Nasdanika AI Math</name>
+	<description>Nasdanika AI prediction adapters for Apache Commmons Math</description>
+	<url>https://docs.nasdanika.org/ai/smile/index.html</url>
     <scm>
-       <url>https://github.com/Nasdanika/ai/tree/main/ollama</url>
+       <url>https://github.com/Nasdanika/ai/tree/main/math</url>
     </scm>  
 
 	<dependencies>
@@ -22,9 +23,9 @@
 			<version>${project.version}</version>
 		</dependency>
         <dependency>
-            <groupId>org.nasdanika.core</groupId>
-            <artifactId>http</artifactId>
-            <version>${core.version}</version>
-        </dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+        <version>3.6.1</version>
+</dependency>		
 	</dependencies>
 </project>

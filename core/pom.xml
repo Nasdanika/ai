@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.7.0</version>
+	    <version>2025.10.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>core</artifactId>
@@ -36,13 +36,6 @@
             <artifactId>hnswlib-core</artifactId>
             <version>1.2.1</version>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>com.github.jelmerk</groupId>
-            <artifactId>hnswlib-core-jdk17</artifactId>
-            <version>1.2.1</version>
-        </dependency>
-        -->
         <dependency>
             <groupId>com.github.jelmerk</groupId>
             <artifactId>hnswlib-utils</artifactId>

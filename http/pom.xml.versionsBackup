@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2025.10.0</version>
+	    <version>2025.7.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>http</artifactId>
@@ -24,8 +24,23 @@
         </dependency>      
         <dependency>
             <groupId>org.nasdanika.html</groupId>
-            <artifactId>http</artifactId>
-            <version>2025.10.0</version>
+            <artifactId>alpinejs</artifactId>
+            <version>2025.7.0</version>
+        </dependency>	   
+        <dependency>
+            <groupId>org.nasdanika.html</groupId>
+            <artifactId>bootstrap</artifactId>
+            <version>2025.7.0</version>
         </dependency>      
+        <dependency>
+            <groupId>org.nasdanika.core</groupId>
+            <artifactId>http</artifactId>
+            <version>${core.version}</version>
+        </dependency>      
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <version>0.10.0</version>
+        </dependency>
  	</dependencies>
 </project>

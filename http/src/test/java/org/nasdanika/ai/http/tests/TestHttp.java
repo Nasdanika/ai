@@ -2,8 +2,6 @@ package org.nasdanika.ai.http.tests;
 
 import java.awt.Desktop;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import org.jline.reader.LineReader;
@@ -16,8 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.Chat.ResponseMessage;
 import org.nasdanika.ai.http.AbstractAIChatRoutes;
-import org.nasdanika.ai.http.ChatBuilder;
-import org.nasdanika.html.HTMLPage;
 import org.nasdanika.html.Input;
 import org.nasdanika.html.InputType;
 import org.nasdanika.html.alpinejs.AlpineJs;
@@ -28,13 +24,6 @@ import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
 public class TestHttp {
-	
-	@Test
-	public void testChatBuilder() throws Exception {		
-		ChatBuilder chatBuilder = new ChatBuilder("chat");
-		HTMLPage page = chatBuilder.buildPage();
-		Files.writeString(Path.of("target", "chat.html"), page.toString());				
-	}
 	
 	@Test
 	@Disabled
