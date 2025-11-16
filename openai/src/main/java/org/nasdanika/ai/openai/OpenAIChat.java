@@ -3,6 +3,7 @@ package org.nasdanika.ai.openai;
 import java.lang.module.ModuleDescriptor.Version;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import org.nasdanika.ai.Chat;
 import org.nasdanika.common.Util;
@@ -42,6 +43,16 @@ import reactor.core.publisher.Mono;
  */
 public class OpenAIChat implements Chat {
 	
+	/**
+	 * Chat requirement.
+	 * String attributes match any value if null.
+	 */
+	public record Requirement(
+		String model,
+		String version,
+		BiConsumer<Integer,Integer> usageConsumer) {}	
+	
+	
 	private OpenAIClient openAIClient;
 	private String provider;
 	private String model;
@@ -53,11 +64,11 @@ public class OpenAIChat implements Chat {
 	protected String getInstrumentationScopeVersion() {
 		return 
 			getClass()
-			.getModule()
-			.getDescriptor()
-			.version()
-			.map(Version::toString)
-			.orElse("undefined");
+				.getModule()
+				.getDescriptor()
+				.version()
+				.map(Version::toString)
+				.orElse("undefined");
 	}
 
     Tracer tracer;
@@ -67,7 +78,8 @@ public class OpenAIChat implements Chat {
 	private int maxInputTokens;
 	private int maxOutputTokens;
 	private String version;
-	private OpenAIAsyncClient openAIAsyncClient;        
+	private OpenAIAsyncClient openAIAsyncClient;      
+	private BiConsumer<Integer,Integer> usageConsumer;
 
 	public OpenAIChat(
 			OpenAIClient openAIClient, 
@@ -77,7 +89,8 @@ public class OpenAIChat implements Chat {
 			String version,
 			int maxInputTokens,
 			int maxOutputTokens,
-			OpenTelemetry openTelemetry) {
+			OpenTelemetry openTelemetry,
+			BiConsumer<Integer,Integer> usageConsumer) {
 		this.openAIClient = openAIClient;
 		this.openAIAsyncClient = openAIAsyncClient;
 		this.provider = provider;
@@ -85,6 +98,7 @@ public class OpenAIChat implements Chat {
 		this.version = version;
 		this.maxInputTokens = maxInputTokens;
 		this.maxOutputTokens = maxOutputTokens;
+		this.usageConsumer = usageConsumer;
 						 
 		tracer = openTelemetry.getTracer(getInstrumentationScopeName(), getInstrumentationScopeVersion());
 		Meter meter = openTelemetry.getMeter(getInstrumentationScopeName());
@@ -344,8 +358,13 @@ public class OpenAIChat implements Chat {
 		
 		int totalTokens = usage.getTotalTokens();
 		totalTokenCounter.add(totalTokens);
+		
+		if (usageConsumer != null) {
+			usageConsumer.accept(promptTokens, completionTokens);
+		}
+		
 		span.setAttribute("total-tokens", totalTokens);
-		span.setStatus(StatusCode.OK);
+		span.setStatus(StatusCode.OK);				
 		return ret;		
 	}
 	
