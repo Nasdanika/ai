@@ -64,7 +64,8 @@ public class OpenAIGpt4oChatCapabilityFactory extends ServiceCapabilityFactory<C
 			null,
 			16385,
 			4096,
-			openTelemetry);
+			openTelemetry,
+			null);
 	}	
 
 }

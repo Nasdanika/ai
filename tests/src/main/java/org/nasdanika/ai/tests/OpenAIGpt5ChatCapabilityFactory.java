@@ -64,7 +64,8 @@ public class OpenAIGpt5ChatCapabilityFactory extends ServiceCapabilityFactory<Ch
 			null,
 			272000,
 			128000,
-			openTelemetry);
+			openTelemetry,
+			null);
 	}	
 
 }

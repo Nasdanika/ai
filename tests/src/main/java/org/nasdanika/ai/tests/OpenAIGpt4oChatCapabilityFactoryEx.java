@@ -1,6 +1,7 @@
 package org.nasdanika.ai.tests;
 
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
 import org.nasdanika.ai.Chat;
 import org.nasdanika.ai.openai.OpenAIChat;
@@ -13,9 +14,9 @@ import com.azure.ai.openai.OpenAIClientBuilder;
 
 import io.opentelemetry.api.OpenTelemetry;
 
-public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFactory<Chat.Requirement, Chat> {
+public class OpenAIGpt4oChatCapabilityFactoryEx extends ServiceCapabilityFactory<OpenAIChat.Requirement, Chat> {
 
-	private static final String MODEL = "gpt-3.5-turbo";
+	private static final String MODEL = "gpt-4o";
 	private static final String PROVIDER = "OpenAI";
 
 	@Override
@@ -24,11 +25,8 @@ public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFact
 			if (requirement == null) {
 				return true;
 			}
-			if (requirement instanceof Chat.Requirement) {			
-				Chat.Requirement cReq = (Chat.Requirement) requirement;
-				if (!Util.isBlank(cReq.provider()) && !PROVIDER.equals(cReq.provider())) {
-					return false;
-				}
+			if (requirement instanceof OpenAIChat.Requirement) {			
+				OpenAIChat.Requirement cReq = (OpenAIChat.Requirement) requirement;
 				return Util.isBlank(cReq.model()) || MODEL.equals(cReq.model());
 			}
 		}
@@ -38,7 +36,7 @@ public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFact
 	@Override
 	protected CompletionStage<Iterable<CapabilityProvider<Chat>>> createService(
 			Class<Chat> serviceType,
-			Chat.Requirement serviceRequirement, 
+			OpenAIChat.Requirement serviceRequirement, 
 			Loader loader, 
 			ProgressMonitor progressMonitor) {
 		
@@ -52,10 +50,13 @@ public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFact
 		
 		CompletionStage<OpenAIClientBuilder> openAIClientBuilderCS = loader.loadOne(openAIClientBuilderRequirement, progressMonitor);
 		
-		return wrapCompletionStage(openAIClientBuilderCS.thenCombine(openTelemetryCS, this::createChat));
+		return wrapCompletionStage(openAIClientBuilderCS.thenCombine(openTelemetryCS, (c,t) -> createChat(c, t, serviceRequirement.usageConsumer())));
 	}
 		
-	protected Chat createChat(OpenAIClientBuilder openAIClientBuilder, OpenTelemetry openTelemetry) {
+	protected Chat createChat(
+			OpenAIClientBuilder openAIClientBuilder, 
+			OpenTelemetry openTelemetry,
+			BiConsumer<Integer,Integer> usageConsumer) {
 		return new OpenAIChat(
 			openAIClientBuilder.buildClient(),
 			openAIClientBuilder.buildAsyncClient(),
@@ -65,7 +66,7 @@ public class OpenAIGpt35TurboChatCapabilityFactory extends ServiceCapabilityFact
 			16385,
 			4096,
 			openTelemetry,
-			null);
+			usageConsumer);
 	}	
 
 }

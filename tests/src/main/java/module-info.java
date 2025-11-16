@@ -4,7 +4,9 @@ import org.nasdanika.ai.tests.LlavaOllamaChatCapabilityFactory;
 import org.nasdanika.ai.tests.OpenAIAdaEmbeddingsCapabilityFactory;
 import org.nasdanika.ai.tests.OpenAIGpt35TurboChatCapabilityFactory;
 import org.nasdanika.ai.tests.OpenAIGpt4oChatCapabilityFactory;
+import org.nasdanika.ai.tests.OpenAIGpt4oChatCapabilityFactoryEx;
 import org.nasdanika.ai.tests.OpenAIGpt5ChatCapabilityFactory;
+import org.nasdanika.ai.tests.RateLimitingHttpPipelinePolicyCapabilityFactory;
 import org.nasdanika.ai.tests.SnowflakeArcticEmbedOllamatCapabilityFactory;
 import org.nasdanika.capability.CapabilityFactory;
 
@@ -17,6 +19,7 @@ module org.nasdanika.ai.openai.tests {
 	requires jtokkit;
 	requires org.jline;
 	requires org.nasdanika.ai.http;
+	requires org.jsoup;
 	
 	provides CapabilityFactory with 
 		EnvironmentVariableKeyCredentialCapabilityFactory,
@@ -26,6 +29,8 @@ module org.nasdanika.ai.openai.tests {
 		OpenAIGpt5ChatCapabilityFactory,
 		Llama32OllamaChatCapabilityFactory,
 		LlavaOllamaChatCapabilityFactory,		
+		RateLimitingHttpPipelinePolicyCapabilityFactory,
+		OpenAIGpt4oChatCapabilityFactoryEx,
 		SnowflakeArcticEmbedOllamatCapabilityFactory;
 	
 }

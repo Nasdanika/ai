@@ -27,10 +27,12 @@ import org.jline.terminal.TerminalBuilder;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.jsoup.Jsoup;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.nasdanika.ai.CachingImageNarrator;
 import org.nasdanika.ai.Chat;
+import org.nasdanika.ai.Chat.Message;
 import org.nasdanika.ai.Chat.ResponseMessage;
 import org.nasdanika.ai.ChatImageNarrator;
 import org.nasdanika.ai.EmbeddingGenerator;
@@ -62,6 +64,7 @@ import com.github.jelmerk.hnswlib.core.DistanceFunctions;
 import com.github.jelmerk.hnswlib.core.hnsw.HnswIndex;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
+import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -72,6 +75,7 @@ import io.opentelemetry.context.Scope;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
+import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.server.HttpServer;
 
 public class TestAI {
@@ -588,8 +592,7 @@ public class TestAI {
 		ImageNarrator cachingImageNarrator = new CachingImageNarrator(chatImageNarrator, cache);
 		String narration = cachingImageNarrator.asFileEmbeddingGenerator().generateAsync(new File("llama.png")).block();
 		System.out.println(narration);
-	}	
-	
+	}		
 	
 	@Test
 	public void testOllamaChat() {
@@ -1006,5 +1009,5 @@ public class TestAI {
 		server.dispose();
 		server.onDispose().block();		
 	}	
-	
+		
 }

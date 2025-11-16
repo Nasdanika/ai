@@ -10,6 +10,18 @@
 	<artifactId>tests</artifactId>
 	<packaging>jar</packaging>
 	<name>Nasdanika AI Tests</name>
+	
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.microsoft.semantic-kernel</groupId>
+                <artifactId>semantickernel-bom</artifactId>
+                <version>1.4.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 	<dependencies>
         <dependency>
@@ -27,5 +39,11 @@
             <artifactId>ollama</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.5.0-jre</version>
+        </dependency>
+        
 	</dependencies>
 </project>
