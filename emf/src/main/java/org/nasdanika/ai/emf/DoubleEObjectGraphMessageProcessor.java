@@ -40,9 +40,9 @@ public class DoubleEObjectGraphMessageProcessor<CS> extends EObjectGraphMessageP
 	
 	@Override
 	protected BiFunction<Connection,Boolean,Double> createNodeProcessorState(
-			NodeProcessorConfig<BiFunction<Message<Double>, ProgressMonitor, Void>, BiFunction<Message<Double>, ProgressMonitor, Void>> nodeProcessorConfig,
+			NodeProcessorConfig<BiFunction<Message<Double>, ProgressMonitor, Void>, BiFunction<Message<Double>, ProgressMonitor, Void>, Object> nodeProcessorConfig,
 			boolean parallel,
-			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<Double>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<Double>, ProgressMonitor, Void>, BiFunction<Message<Double>, ProgressMonitor, Void>, Object, BiFunction<Message<Double>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
 			Consumer<CompletionStage<?>> endpointWiringStageConsumer,
 			Map<Connection, BiFunction<Message<Double>, ProgressMonitor, Void>> incomingEndpoints,
 			Map<Connection, BiFunction<Message<Double>, ProgressMonitor, Void>> outgoingEndpoints,

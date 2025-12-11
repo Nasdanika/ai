@@ -228,9 +228,9 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	}	
 	
 	protected NS createNodeProcessorState(
-			NodeProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> nodeProcessorConfig,
+			NodeProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object> nodeProcessorConfig,
 			boolean parallel,
-			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object, BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
 			Consumer<CompletionStage<?>> endpointWiringStageConsumer,
 			Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> incomingEndpoints,
 			Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> outgoingEndpoints,
@@ -240,9 +240,9 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	}
 	
 	protected CS createConnectionProcessorState(
-			ConnectionProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> connectionProcessorConfig,
+			ConnectionProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object> connectionProcessorConfig,
 			boolean parallel,
-			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+			BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object, BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
 			Consumer<CompletionStage<?>> endpointWiringStageConsumer, ProgressMonitor progressMonitor) {
 		
 		return null;
@@ -261,22 +261,30 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	public void process(
 			boolean parallel, 
 			V rootMessageValue,
-			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,	
+			Function<
+				Map<
+					Element, 
+					ProcessorInfo<
+						BiFunction<Message<V>, ProgressMonitor, Void>, 
+						BiFunction<Message<V>, ProgressMonitor, Void>, 
+						Object, 
+						BiFunction<Message<V>, ProgressMonitor, Void>>>, 
+				Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,	
 			BiFunction<Message<V>, ProgressMonitor, Message<V>> messageFilter,
 			Consumer<Runnable> executor,
 			Collector<V> collector,
 			ProgressMonitor progressMonitor) {		
 		
-		ProcessorConfigFactory<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> processorConfigFactory = new ProcessorConfigFactory<>() {
+		ProcessorConfigFactory<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object> processorConfigFactory = new ProcessorConfigFactory<>() {
 			
 			@Override
 			protected boolean isPassThrough(org.nasdanika.graph.Connection connection) {
 				return false;
 			}
-	
+			
 			@Override
 			public BiFunction<Message<V>, ProgressMonitor, Void> createEndpoint(
-					Connection connection, 
+					Element element, 
 					BiFunction<Message<V>, ProgressMonitor, Void> handler,
 					HandlerType type) {
 				
@@ -291,10 +299,10 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 
 		};	
 		
-		Transformer<Element,ProcessorConfig> processorConfigTransformer = new Transformer<>(processorConfigFactory);
-		Map<Element, ProcessorConfig> configs = processorConfigTransformer.transform(registry.values(), parallel, progressMonitor);
+		Transformer<Element, ProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object>> processorConfigTransformer = new Transformer<>(processorConfigFactory);
+		Map<Element, ProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object>> configs = processorConfigTransformer.transform(registry.values(), parallel, progressMonitor);
 		
-		MessageProcessorFactory<Message<V>,Void,Message<V>,Void,NS,CS> processorFactory = new MessageProcessorFactory<>() {
+		MessageProcessorFactory<Message<V>,Void,Message<V>,Void,NS,CS,Object> processorFactory = new MessageProcessorFactory<>() {
 
 			@Override
 			protected Message<V> createSourceMessage(
@@ -328,9 +336,9 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 
 			@Override
 			protected NS createNodeProcessorState(
-					NodeProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> nodeProcessorConfig,
+					NodeProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object> nodeProcessorConfig,
 					boolean parallel,
-					BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+					BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object, BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
 					Consumer<CompletionStage<?>> endpointWiringStageConsumer,
 					Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> incomingEndpoints,
 					Map<Connection, BiFunction<Message<V>, ProgressMonitor, Void>> outgoingEndpoints,
@@ -348,9 +356,9 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 
 			@Override
 			protected CS createConnectionProcessorState(
-					ConnectionProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>> connectionProcessorConfig,
+					ConnectionProcessorConfig<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object> connectionProcessorConfig,
 					boolean parallel,
-					BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
+					BiConsumer<Element, BiConsumer<ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object, BiFunction<Message<V>, ProgressMonitor, Void>>, ProgressMonitor>> infoProvider,
 					Consumer<CompletionStage<?>> endpointWiringStageConsumer, ProgressMonitor progressMonitor) {
 
 				return EObjectGraphMessageProcessor.this.createConnectionProcessorState(
@@ -409,7 +417,7 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 			
 		};
 		
-		Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>> processors = processorFactory.createProcessors(configs.values(), parallel, progressMonitor);		
+		Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object, BiFunction<Message<V>, ProgressMonitor, Void>>> processors = processorFactory.createProcessors(configs.values(), parallel, progressMonitor);		
 		Stream<BiFunction<Message<V>, ProgressMonitor, Void>> ps;
 		if (selector == null) {		
 			ps = processors
@@ -446,7 +454,7 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	 */
 	public void processes(
 			V rootMessageValue,
-			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,			
+			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object, BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,			
 			BiFunction<Message<V>, ProgressMonitor, Message<V>> messageFilter,
 			Collector<V> collector, 
 			ProgressMonitor progressMonitor) {		
@@ -478,7 +486,7 @@ public class EObjectGraphMessageProcessor<V,NS,CS> {
 	 */
 	public void process(
 			V rootMessageValue,
-			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,			
+			Function<Map<Element, ProcessorInfo<BiFunction<Message<V>, ProgressMonitor, Void>, BiFunction<Message<V>, ProgressMonitor, Void>, Object, BiFunction<Message<V>, ProgressMonitor, Void>>>, Stream<BiFunction<Message<V>, ProgressMonitor, Void>>> selector,			
 			BiFunction<Message<V>, ProgressMonitor, Message<V>> messageFilter,
 			Collector<V> collector,
 			boolean parallel,
