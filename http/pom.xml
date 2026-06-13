@@ -25,7 +25,7 @@
         <dependency>
             <groupId>org.nasdanika.html</groupId>
             <artifactId>http</artifactId>
-            <version>2026.2.0</version>
+			<version>${html.version}</version>
         </dependency>      
  	</dependencies>
 </project>

@@ -4,7 +4,7 @@
 	  <parent>
 	    <artifactId>parent</artifactId>
 	    <groupId>org.nasdanika.ai</groupId>
-	    <version>2026.2.0</version>
+        <version>2026.6.0</version>
 	    <relativePath>..</relativePath>
 	  </parent>
 	<artifactId>tests</artifactId>
@@ -16,7 +16,7 @@
             <dependency>
                 <groupId>com.microsoft.semantic-kernel</groupId>
                 <artifactId>semantickernel-bom</artifactId>
-                <version>1.4.3</version>
+                <version>1.5.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -42,7 +42,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.5.0-jre</version>
+            <version>33.6.0-jre</version>
         </dependency>
         
 	</dependencies>

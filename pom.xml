@@ -23,8 +23,10 @@
 	</scm>
 
 	<properties>
-		<core.version>2026.2.0</core.version>
-		<jacoco.version>0.8.14</jacoco.version>
+		<core.version>2026.6.0</core.version>
+		<html.version>2026.6.0</html.version>
+		<models.ecore.version>2026.6.0</models.ecore.version>
+		<jacoco.version>0.8.15</jacoco.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.javadoc.failOnError>false</maven.javadoc.failOnError>
 		<linksource>true</linksource>
@@ -42,7 +44,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.5.0</version>
+				<version>3.6.3</version>
 				<executions>
 					<execution>
 						<id>enforce-maven</id>
@@ -81,7 +83,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.14.1</version>
+				<version>3.15.0</version>
 				<configuration>
 					<release>21</release>
 				</configuration>
@@ -172,20 +174,20 @@
 		<dependency>
 		    <groupId>org.junit.jupiter</groupId>
 		    <artifactId>junit-jupiter-api</artifactId>
-		    <version>6.0.1</version>
+		    <version>6.1.0</version>
 		    <scope>test</scope>
 		</dependency>		
 		<dependency>
 		    <groupId>org.junit.jupiter</groupId>
 		    <artifactId>junit-jupiter-engine</artifactId>
-		    <version>6.0.1</version>
+		    <version>6.1.0</version>
 		    <scope>test</scope>
 		</dependency>		
 		
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
-			<version>3.27.6</version>
+			<version>4.0.0-M1</version>
 			<scope>test</scope>
 		</dependency>				
 	</dependencies>
@@ -212,13 +214,17 @@
 		<module>cli</module>
 		<module>openai</module>
 		<module>ollama</module>
+		<!-- Need to upgrade to 2.0.0
 		<module>mcp</module>
 		<module>mcp-sse</module>
 		<module>mcp-help</module>
+		 -->
 		<module>emf</module>
 		<module>drawio</module>
 		<module>math</module>
+		<!-- Need to upgrade to 6.2.0
 		<module>smile</module>
+		-->
 		<module>http</module>
 	</modules>	
 
@@ -257,7 +263,7 @@
 					<plugin>					
 						<groupId>org.sonatype.central</groupId>
 						<artifactId>central-publishing-maven-plugin</artifactId>
-						<version>0.9.0</version>
+						<version>0.10.0</version>
 						<extensions>true</extensions>
 						<configuration>
 							<publishingServerId>central</publishingServerId>

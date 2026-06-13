@@ -25,7 +25,7 @@
         <dependency>
             <groupId>com.github.haifengl</groupId>
             <artifactId>smile-core</artifactId>
-            <version>4.4.2</version> <!-- 5.x requires Java > 21 -->
+			<version>6.2.0</version>
         </dependency>				
 	</dependencies>
 </project>
